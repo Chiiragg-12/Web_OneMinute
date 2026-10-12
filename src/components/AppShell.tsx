@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, LogOut, Menu, X } from 'lucide-react';
 import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { BrandLogo } from './BrandLogo';
+import { Tooltip } from './Tooltip';
 
 export interface ShellItem {
   to: string;
@@ -34,9 +35,11 @@ function NavItems({ groups, collapsed, onNavigate }: { groups: ShellGroup[]; col
           {group.label && !collapsed ? <p className="shell-group-label">{group.label}</p> : null}
           {group.label && collapsed ? <div className="shell-group-rule" /> : null}
           {group.items.map(({ to, label, Icon, active, end }) => (
-            <NavLink key={to} to={to} end={end} title={collapsed ? label : undefined} onClick={onNavigate} className={({ isActive }) => ((active ?? isActive) ? 'shell-link active' : 'shell-link')}>
-              <Icon size={18} />{collapsed ? <span className="sr-only">{label}</span> : <span>{label}</span>}
-            </NavLink>
+            <Tooltip key={to} label={label} disabled={!collapsed} className="flex w-full">
+              <NavLink to={to} end={end} onClick={onNavigate} className={({ isActive }) => (((active ?? isActive) ? 'shell-link active' : 'shell-link') + ' w-full')}>
+                <Icon size={18} />{collapsed ? <span className="sr-only">{label}</span> : <span>{label}</span>}
+              </NavLink>
+            </Tooltip>
           ))}
         </div>
       ))}
@@ -60,7 +63,7 @@ function AccountMenu({ user, onSignOut }: { user: ShellUser; onSignOut: () => vo
   }, [open]);
   return (
     <div className="relative" ref={root}>
-      <button type="button" className="shell-avatar" aria-label="Account menu" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}>{initials(user.name)}</button>
+      <Tooltip label="Account" side="left" disabled={open}><button type="button" className="shell-avatar" aria-label="Account menu" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((value) => !value)}>{initials(user.name)}</button></Tooltip>
       {open ? (
         <div className="shell-popover" role="menu">
           <div className="shell-popover-head">
@@ -98,10 +101,11 @@ export function AppShell({ groups, user, onSignOut, homeTo, subtitle, children }
   return (
     <div className="shell-root">
       <aside className={collapsed ? 'shell-sidebar collapsed' : 'shell-sidebar'}>
-        <button type="button" className="shell-collapse" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={toggle}>{collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}</button>
+        <Tooltip label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} className="shell-collapse-wrap"><button type="button" className="shell-collapse" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={toggle}>{collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}</button></Tooltip>
         <div className="shell-scroll">
           <div className="shell-brand">
-            <Link to={homeTo} aria-label="OneMinute Healthcare home" className="shell-brand-link">{collapsed ? <BrandLogo compact /> : <BrandLogo />}</Link>
+            <Link to={homeTo} aria-label="OneMinute Healthcare home" className="shell-brand-link"><BrandLogo /></Link>
+            {collapsed ? null : <span className="shell-wordmark" aria-hidden="true"><span className="shell-wordmark-name"><b>One</b><i>Minute</i></span><span className="shell-wordmark-sub">Healthcare</span></span>}
           </div>
           <NavItems groups={groups} collapsed={collapsed} />
         </div>

@@ -75,7 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (input: Record<string, unknown>) => {
     const result = await api.login(input);
     if (!isWebRole(result.user.role)) return result.user.role;
-    setAccessToken(result.accessToken);
+    // The sign-in lives at "/", so the token is filed under the account's own role, not the page address.
+    setAccessToken(result.accessToken, result.user.role);
     try {
       const next = await authenticatedState(result.accessToken, result.user);
       setSessionExpired(false);

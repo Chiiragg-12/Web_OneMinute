@@ -175,9 +175,15 @@ main > :not(.loading-delayed) { animation: page-in .18s ease-out backwards; }
 .shell-header { position: sticky; top: 0; z-index: 20; display: flex; height: 4rem; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #dfeae6; background: rgba(255,255,255,.92); padding-inline: 1rem; backdrop-filter: blur(8px); }
 .shell-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; font-weight: 600; color: #102a2b; }
 .shell-content { padding: 1.25rem 1rem 2.5rem; }
-.shell-brand { display: flex; align-items: center; justify-content: center; padding: 1.1rem 1rem .6rem; }
-.shell-brand-link { display: block; width: 100%; max-width: 6rem; }
+.shell-brand { display: flex; height: 4rem; align-items: center; justify-content: flex-start; padding-left: 1.5rem; border-bottom: 1px solid #dfeae6; margin-bottom: .5rem; }
+.shell-brand-link { display: block; width: 3rem; }
 .shell-brand-link .brand-logo { width: 100%; }
+.shell-brand { gap: .7rem; }
+.shell-wordmark { display: flex; flex-direction: column; line-height: 1.05; white-space: nowrap; }
+.shell-wordmark-name { font-family: 'Space Grotesk', sans-serif; font-size: 1.2rem; font-weight: 700; letter-spacing: -.02em; }
+.shell-wordmark-name b { color: #12a1a6; font-weight: 700; }
+.shell-wordmark-name i { color: #1b4fa0; font-style: normal; }
+.shell-wordmark-sub { margin-top: .15rem; color: #0d8a8f; font-size: .62rem; font-weight: 700; letter-spacing: .32em; text-transform: uppercase; }
 .shell-nav { display: flex; flex-direction: column; gap: .35rem; padding: .5rem .75rem 1rem; }
 .shell-group { display: flex; flex-direction: column; gap: .15rem; }
 .shell-group + .shell-group { margin-top: .6rem; }
@@ -202,11 +208,12 @@ main > :not(.loading-delayed) { animation: page-in .18s ease-out backwards; }
   .shell-scroll { height: 100%; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: #cfdeda transparent; }
   .shell-burger { display: none; }
   .shell-sidebar.collapsed { width: 4.75rem; }
-  .shell-sidebar.collapsed .shell-brand { padding-inline: .5rem; }
-  .shell-sidebar.collapsed .shell-brand-link { display: grid; place-items: center; }
   .shell-sidebar.collapsed .shell-link { justify-content: center; }
   .shell-sidebar.collapsed .shell-nav { padding-inline: .5rem; }
-  .shell-collapse { position: absolute; right: -.85rem; top: 1.15rem; z-index: 2; display: grid; width: 1.7rem; height: 1.7rem; place-items: center; border: 1px solid #cfdeda; border-radius: 999px; background: #fff; color: #4b6664; box-shadow: 0 2px 6px rgba(30,70,65,.12); }
+  .shell-collapse-wrap { position: absolute; right: -.85rem; top: 1.15rem; z-index: 2; }
+  .shell-collapse { position: static; right: -.85rem; top: 1.15rem; z-index: 2; display: grid; width: 1.7rem; height: 1.7rem; place-items: center; border: 1px solid #cfdeda; border-radius: 999px; background: #fff; color: #4b6664; box-shadow: 0 2px 6px rgba(30,70,65,.12); }
+  .shell-sidebar.collapsed .shell-brand { justify-content: center; padding-left: 0; }
+  .shell-sidebar.collapsed .shell-brand-link { width: 2.6rem; }
   .shell-collapse:hover { background: #eef6f3; color: #086f69; }
   .shell-main { margin-left: 16.5rem; transition: margin .18s ease; }
   .shell-sidebar.collapsed ~ .shell-main { margin-left: 4.75rem; }
@@ -214,3 +221,5 @@ main > :not(.loading-delayed) { animation: page-in .18s ease-out backwards; }
   .shell-content { padding: 1.75rem 2rem 3rem; }
 }
 @media (max-width: 1023px) { .shell-collapse { display: none; } }
+
+@keyframes tooltip-in { from { opacity: 0; } to { opacity: 1; } }
