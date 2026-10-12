@@ -6,8 +6,8 @@ const when = (iso: string) => new Intl.DateTimeFormat('en-IN', { dateStyle: 'med
 
 export function DoctorInviteCard({ doctorName, publicDoctorId, code, expiresAt }: { doctorName: string; publicDoctorId: string | null; code: string; expiresAt: string }) {
   const [copied, setCopied] = useState(false);
-  const link = `${window.location.origin}/doctor/claim`;
-  const message = `Dr. ${doctorName.replace(/^Dr\.?\s*/i, '')}: activate your OneMinute doctor account at ${link}\nDoctor ID: ${publicDoctorId ?? ''}\nInvite code: ${code} (valid until ${when(expiresAt)}, works once)`;
+  const link = `${window.location.origin}/get-the-app`;
+  const message = `Dr. ${doctorName.replace(/^Dr\.?\s*/i, '')}: activate your OneMinute doctor account. Install the OneMinute app (${link}), choose Doctor, tap "Activate your account" and enter:\nDoctor ID: ${publicDoctorId ?? ''}\nInvite code: ${code} (valid until ${when(expiresAt)}, works once)`;
   const copy = async () => { try { await navigator.clipboard.writeText(message); setCopied(true); } catch { setCopied(false); } };
   return (
     <section className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-5" aria-label={`Invite for ${doctorName}`}>
@@ -18,7 +18,7 @@ export function DoctorInviteCard({ doctorName, publicDoctorId, code, expiresAt }
         <div><dt className="text-slate-600">Doctor ID</dt><dd className="font-mono text-lg font-semibold">{publicDoctorId}</dd></div>
         <div><dt className="text-slate-600">Invite code</dt><dd className="font-mono text-lg font-semibold">{code}</dd></div>
       </dl>
-      <p className="mt-3 text-sm text-amber-950">They open <strong>{link}</strong> and choose their own email or phone and password. The code works once and expires on {when(expiresAt)}.</p>
+      <p className="mt-3 text-sm text-amber-950">They install the OneMinute app, choose <strong>Doctor</strong>, tap <strong>Activate your account</strong>, and choose their own email or phone and password. The code works once and expires on {when(expiresAt)}. App install help: <strong>{link}</strong></p>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Button type="button" variant="outline" onClick={() => void copy()}><Copy size={16} />Copy message for the doctor</Button>
         {copied && <span className="text-sm font-semibold text-emerald-700" role="status">Copied</span>}

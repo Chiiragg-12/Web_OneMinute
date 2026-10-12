@@ -6,10 +6,8 @@ import {
   type FormEvent,
   type ReactNode,
 } from "react";
-import { Capacitor } from "@capacitor/core";
-import { GoogleSignIn } from "@capawesome/capacitor-google-sign-in";
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { api, ApiError } from "../api/client";
+import { ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
 import { ApiErrorState, Button, Field } from "../components/ui";
 import { BrandLogo } from "../components/BrandLogo";
@@ -76,19 +74,12 @@ function AuthFrame({
   );
 }
 
-function homeForRole(role: "patient" | "doctor" | "receptionist" | "admin") {
-  return role === "doctor"
-    ? "/doctor"
-    : role === "receptionist"
-      ? "/receptionist"
-      : role === "admin"
-        ? "/admin"
-        : "/app";
+type WebRole = "receptionist" | "admin";
+
+function homeForRole(role: WebRole) {
+  return role === "admin" ? "/admin" : "/receptionist";
 }
-export function safeReturnTo(
-  value: unknown,
-  role: "patient" | "doctor" | "receptionist" | "admin",
-) {
+export function safeReturnTo(value: unknown, role: WebRole) {
   const fallback = homeForRole(role);
   if (
     typeof value !== "string" ||
@@ -96,26 +87,18 @@ export function safeReturnTo(
     value.startsWith("//")
   )
     return fallback;
-  const allowedPrefix =
-    role === "doctor"
-      ? "/doctor"
-      : role === "receptionist"
-        ? "/receptionist"
-        : role === "admin"
-          ? "/admin"
-          : "/app";
+  const allowedPrefix = homeForRole(role);
   return value === allowedPrefix ||
     value.startsWith(`${allowedPrefix}/`) ||
     value.startsWith(`${allowedPrefix}?`)
     ? value
     : fallback;
 }
-function useAuthRedirect(
-  audience?: "patient" | "doctor" | "receptionist" | "admin",
-) {
+function useAuthRedirect(audience?: WebRole) {
   const { state } = useAuth();
   if (
     state.status !== "authenticated" ||
+    (state.user.role !== "receptionist" && state.user.role !== "admin") ||
     (audience && state.user.role !== audience)
   )
     return null;
@@ -127,16 +110,14 @@ function GoogleButton({
   onError,
   onCredential,
 }: {
-  role: "patient" | "doctor" | "receptionist";
+  role: "receptionist";
   onError: (error: unknown) => void;
   onCredential?: (credential: string) => Promise<void>;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const { googleLogin } = useAuth();
-  const native = Capacitor.isNativePlatform();
-  const [busy, setBusy] = useState(false);
   useEffect(() => {
-    if (native || !ref.current) return;
+    if (!ref.current) return;
     const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as
       | string
       | undefined;
@@ -168,40 +149,7 @@ function GoogleButton({
       document.head.appendChild(script);
       return () => script.remove();
     }
-  }, [googleLogin, native, onCredential, onError, role]);
-  const signInNative = async () => {
-    const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as
-      | string
-      | undefined;
-    if (!clientId) {
-      onError(new Error("Google authentication is not configured"));
-      return;
-    }
-    setBusy(true);
-    try {
-      await GoogleSignIn.initialize({ clientId });
-      const result = await GoogleSignIn.signIn();
-      await (onCredential
-        ? onCredential(result.idToken)
-        : googleLogin(result.idToken, role));
-    } catch (error) {
-      onError(error);
-    } finally {
-      setBusy(false);
-    }
-  };
-  if (native)
-    return (
-      <button
-        type="button"
-        className="button button-secondary mt-5 w-full"
-        onClick={() => void signInNative()}
-        disabled={busy}
-        aria-label="Continue with Google"
-      >
-        {busy ? "Signing in…" : "Continue with Google"}
-      </button>
-    );
+  }, [googleLogin, onCredential, onError, role]);
   return (
     <div
       ref={ref}
@@ -247,9 +195,9 @@ function SessionExpiredNotice() {
 }
 
 export function LoginPage({
-  audience = "patient",
+  audience = "receptionist",
 }: {
-  audience?: "patient" | "doctor" | "receptionist" | "admin";
+  audience?: WebRole;
 }) {
   const redirect = useAuthRedirect(audience);
   if (redirect) return redirect;
@@ -257,40 +205,22 @@ export function LoginPage({
   const navigate = useNavigate();
   const location = useLocation();
   const copy =
-    audience === "doctor"
+    audience === "admin"
       ? {
-          app: "DOCTOR APP",
-          title: "Welcome back, Doctor",
+          app: "ADMIN CONSOLE",
+          title: "Financial operations",
           supporting:
-            "Sign in to manage your appointments, queues and consultations.",
-          path: "/doctor/login",
-          role: "doctor" as const,
+            "Review verified collections, obligations and settlements.",
+          path: "/admin/login",
+          role: "admin" as const,
         }
-      : audience === "receptionist"
-        ? {
-            app: "RECEPTIONIST APP",
-            title: "Welcome back",
-            supporting: "Sign in to coordinate your clinic day.",
-            path: "/receptionist/login",
-            role: "receptionist" as const,
-          }
-        : audience === "admin"
-          ? {
-              app: "ADMIN CONSOLE",
-              title: "Financial operations",
-              supporting:
-                "Review verified collections, obligations and settlements.",
-              path: "/admin/login",
-              role: "admin" as const,
-            }
-          : {
-              app: "PATIENT APP",
-              title: "Welcome back",
-              supporting:
-                "Sign in to manage your appointments and healthcare journey.",
-              path: "/login",
-              role: "patient" as const,
-            };
+      : {
+          app: "RECEPTIONIST APP",
+          title: "Welcome back",
+          supporting: "Sign in to coordinate your clinic day.",
+          path: "/receptionist/login",
+          role: "receptionist" as const,
+        };
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<unknown>(null);
@@ -370,28 +300,20 @@ export function LoginPage({
             New to OneMinute?{" "}
             <Link
               className="font-semibold text-teal-700 hover:text-teal-900"
-              to={
-                copy.role === "doctor"
-                  ? "/doctor/register"
-                  : copy.role === "receptionist"
-                    ? "/receptionist/register"
-                    : "/register"
-              }
+              to="/receptionist/register"
             >
               Create New Account
             </Link>
           </p>
-          {copy.role === "doctor" ? (
-            <p className="mt-3 text-sm text-slate-500">
-              Did your clinic give you an invite code?{" "}
-              <Link
-                className="font-semibold text-teal-700 hover:text-teal-900"
-                to="/doctor/claim"
-              >
-                Activate your account
-              </Link>
-            </p>
-          ) : null}
+          <p className="mt-3 text-sm text-slate-500">
+            Doctor or patient?{" "}
+            <Link
+              className="font-semibold text-teal-700 hover:text-teal-900"
+              to="/get-the-app"
+            >
+              Use the OneMinute app
+            </Link>
+          </p>
         </>
       ) : null}
     </AuthFrame>
@@ -401,7 +323,7 @@ export function LoginPage({
 export function StaffRegisterPage({
   role,
 }: {
-  role: "doctor" | "receptionist";
+  role: "receptionist";
 }) {
   const redirect = useAuthRedirect(role);
   if (redirect) return redirect;
@@ -426,34 +348,21 @@ export function StaffRegisterPage({
     setBusy(true);
     setError(null);
     try {
-      if (role === "receptionist")
-        await register(
-          {
-            clinicName: form.clinicName,
-            clinicAddress: form.clinicAddress,
-            city: form.city,
-            pincode: form.pincode,
-            handlerName: form.handlerName,
-            email: form.email,
-            phone: form.phone,
-            password: form.password,
-            confirmPassword: form.confirmPassword,
-          },
-          role,
-        );
-      else
-        await register(
-          {
-            fullName: form.fullName,
-            email: form.email || undefined,
-            phone: form.phone || undefined,
-            password: form.password,
-          },
-          role,
-        );
-      navigate(role === "doctor" ? "/doctor" : "/receptionist", {
-        replace: true,
-      });
+      await register(
+        {
+          clinicName: form.clinicName,
+          clinicAddress: form.clinicAddress,
+          city: form.city,
+          pincode: form.pincode,
+          handlerName: form.handlerName,
+          email: form.email,
+          phone: form.phone,
+          password: form.password,
+          confirmPassword: form.confirmPassword,
+        },
+        role,
+      );
+      navigate("/receptionist", { replace: true });
     } catch (nextError) {
       setError(nextError);
     } finally {
@@ -485,12 +394,8 @@ export function StaffRegisterPage({
     <AuthFrame
       eyebrow={`${role.toUpperCase()} APP`}
       title="Create your account"
-      supportingText={
-        role === "doctor"
-          ? "Start your professional Doctor profile."
-          : "Onboard your clinic and manage it on OneMinute."
-      }
-      loginPath={role === "doctor" ? "/doctor/login" : "/receptionist/login"}
+      supportingText="Onboard your clinic and manage it on OneMinute."
+      loginPath="/receptionist/login"
     >
       <form className="mt-8 space-y-5" onSubmit={submit}>
         {error ? <ApiErrorState error={error} /> : null}
@@ -590,14 +495,7 @@ export function StaffRegisterPage({
         ) : null}
         <Button disabled={busy}>Create Account</Button>
       </form>
-      {role === "doctor" ? (
-        <>
-          <div className="my-5 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
-            or
-          </div>
-          <GoogleButton role={role} onError={setError} />
-        </>
-      ) : role === "receptionist" ? (
+      {role === "receptionist" ? (
         <>
           <div className="my-5 text-center text-xs font-semibold uppercase tracking-widest text-slate-400">
             or
@@ -613,336 +511,11 @@ export function StaffRegisterPage({
         Already registered?{" "}
         <Link
           className="font-semibold text-teal-700"
-          to={role === "doctor" ? "/doctor/login" : "/receptionist/login"}
+          to="/receptionist/login"
         >
           Sign in
         </Link>
       </p>
-    </AuthFrame>
-  );
-}
-
-export function RegisterPage() {
-  const redirect = useAuthRedirect("patient");
-  if (redirect) return redirect;
-  const { register } = useAuth();
-  const navigate = useNavigate();
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    password: "",
-  });
-  const [error, setError] = useState<unknown>(null);
-  const [busy, setBusy] = useState(false);
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setError(null);
-    if (!form.email && !form.phone) {
-      setError(new ApiError(400, "Email or phone is required"));
-      return;
-    }
-    if (form.password.length < 8) {
-      setError(new ApiError(400, "Password must be at least 8 characters"));
-      return;
-    }
-    setBusy(true);
-    try {
-      await register({
-        ...form,
-        email: form.email || undefined,
-        phone: form.phone || undefined,
-      });
-      navigate("/app", { replace: true });
-    } catch (nextError) {
-      setError(nextError);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <AuthFrame
-      eyebrow="PATIENT APP"
-      title="Create your account"
-      supportingText="Your care history, in one steady place."
-      loginPath="/login"
-    >
-      <form className="mt-8 space-y-5" onSubmit={submit}>
-        {error ? <ApiErrorState error={error} /> : null}
-        <Field
-          label="Full name"
-          value={form.fullName}
-          onChange={(event) =>
-            setForm({ ...form, fullName: event.target.value })
-          }
-          required
-          placeholder="Your name"
-        />
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field
-            label="Email"
-            type="email"
-            value={form.email}
-            onChange={(event) =>
-              setForm({ ...form, email: event.target.value })
-            }
-            placeholder="you@example.com"
-          />
-          <Field
-            label="Phone"
-            type="tel"
-            value={form.phone}
-            onChange={(event) =>
-              setForm({ ...form, phone: event.target.value })
-            }
-            placeholder="Optional"
-          />
-        </div>
-        <Field
-          label="Password"
-          type="password"
-          value={form.password}
-          onChange={(event) =>
-            setForm({ ...form, password: event.target.value })
-          }
-          autoComplete="new-password"
-          required
-          placeholder="At least 8 characters"
-        />
-        <Button disabled={busy}>
-          {busy ? (
-            "Creating account…"
-          ) : (
-            <>
-              Create patient account <ArrowRight size={17} />
-            </>
-          )}
-        </Button>
-      </form>
-      <p className="mt-7 text-sm text-slate-500">
-        Already registered?{" "}
-        <Link
-          className="font-semibold text-teal-700 hover:text-teal-900"
-          to="/login"
-        >
-          Sign in
-        </Link>
-      </p>
-    </AuthFrame>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// A doctor takes over the profile a clinic's receptionist created for them.
-// ---------------------------------------------------------------------------
-export function DoctorClaimPage() {
-  const redirect = useAuthRedirect("doctor");
-  const { claimDoctor } = useAuth();
-  const navigate = useNavigate();
-  const [form, setForm] = useState({
-    publicDoctorId: "",
-    inviteCode: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
-  });
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  if (redirect) return redirect;
-  const set = (key: keyof typeof form, value: string) =>
-    setForm((current) => ({ ...current, [key]: value }));
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      await claimDoctor({
-        publicDoctorId: form.publicDoctorId.trim(),
-        inviteCode: form.inviteCode.trim(),
-        email: form.email.trim() || undefined,
-        phone: form.phone.trim() || undefined,
-        password: form.password,
-        confirmPassword: form.confirmPassword,
-      });
-      navigate("/doctor", { replace: true });
-    } catch (nextError) {
-      setError(nextError);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <AuthFrame
-      eyebrow="DOCTOR APP"
-      title="Activate your account"
-      supportingText="Your clinic created a profile for you. Enter the Doctor ID and invite code they gave you, then choose how you will sign in."
-      loginPath="/doctor/login"
-    >
-      <form className="mt-8 space-y-5" onSubmit={(event) => void submit(event)}>
-        {error ? <ApiErrorState error={error} /> : null}
-        <Field
-          label="Doctor ID"
-          value={form.publicDoctorId}
-          onChange={(event) =>
-            set("publicDoctorId", event.target.value.toUpperCase())
-          }
-          placeholder="OMD-A1B2C3D4"
-          required
-        />
-        <Field
-          label="Invite code"
-          value={form.inviteCode}
-          onChange={(event) =>
-            set("inviteCode", event.target.value.toUpperCase())
-          }
-          placeholder="K7M2-QX9P"
-          autoComplete="one-time-code"
-          required
-          hint="The code is valid for 7 days and works once. Ask the clinic for a new one if it has expired."
-        />
-        <Field
-          label="Email"
-          type="email"
-          value={form.email}
-          onChange={(event) => set("email", event.target.value)}
-          autoComplete="email"
-          hint="Use email, phone, or both. You will sign in with this."
-        />
-        <Field
-          label="Phone"
-          type="tel"
-          value={form.phone}
-          onChange={(event) => set("phone", event.target.value)}
-          autoComplete="tel"
-        />
-        <Field
-          label="Choose a password"
-          type="password"
-          value={form.password}
-          onChange={(event) => set("password", event.target.value)}
-          autoComplete="new-password"
-          minLength={8}
-          required
-        />
-        <Field
-          label="Confirm password"
-          type="password"
-          value={form.confirmPassword}
-          onChange={(event) => set("confirmPassword", event.target.value)}
-          autoComplete="new-password"
-          minLength={8}
-          required
-        />
-        <Button disabled={busy || (!form.email.trim() && !form.phone.trim())}>
-          {busy ? (
-            "Activating…"
-          ) : (
-            <>
-              Activate account <ArrowRight size={17} />
-            </>
-          )}
-        </Button>
-      </form>
-      <p className="mt-7 text-sm text-slate-500">
-        Already activated?{" "}
-        <Link
-          className="font-semibold text-teal-700 hover:text-teal-900"
-          to="/doctor/login"
-        >
-          Sign in
-        </Link>
-      </p>
-    </AuthFrame>
-  );
-}
-
-export function ForcePasswordChangePage() {
-  const { state, logout, completePasswordChange } = useAuth();
-  const [form, setForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-  });
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<unknown>(null);
-  if (state.status !== "authenticated") return null;
-  const role = state.user.role;
-  const submit = async (event: FormEvent) => {
-    event.preventDefault();
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await api.changePassword(form);
-      completePasswordChange(result.accessToken);
-    } catch (nextError) {
-      setError(nextError);
-    } finally {
-      setBusy(false);
-    }
-  };
-  return (
-    <AuthFrame
-      eyebrow="ONE LAST STEP"
-      title="Choose your own password"
-      supportingText="The clinic set your first password when they registered you. Pick one only you know before you continue."
-      loginPath="/login"
-    >
-      <form className="mt-8 space-y-5" onSubmit={(event) => void submit(event)}>
-        {error ? <ApiErrorState error={error} /> : null}
-        <Field
-          label="Current password"
-          type="password"
-          value={form.currentPassword}
-          onChange={(event) =>
-            setForm((current) => ({
-              ...current,
-              currentPassword: event.target.value,
-            }))
-          }
-          autoComplete="current-password"
-          required
-          hint="The password the clinic gave you."
-        />
-        <Field
-          label="New password"
-          type="password"
-          value={form.newPassword}
-          onChange={(event) =>
-            setForm((current) => ({
-              ...current,
-              newPassword: event.target.value,
-            }))
-          }
-          autoComplete="new-password"
-          minLength={8}
-          required
-        />
-        <Field
-          label="Confirm new password"
-          type="password"
-          value={form.confirmPassword}
-          onChange={(event) =>
-            setForm((current) => ({
-              ...current,
-              confirmPassword: event.target.value,
-            }))
-          }
-          autoComplete="new-password"
-          minLength={8}
-          required
-        />
-        <Button disabled={busy}>
-          {busy ? "Saving…" : "Save and continue"}
-        </Button>
-      </form>
-      <button
-        type="button"
-        className="mt-6 text-sm font-semibold text-slate-500 underline"
-        onClick={() => void logout(role)}
-      >
-        Sign out
-      </button>
     </AuthFrame>
   );
 }

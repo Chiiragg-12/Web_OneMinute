@@ -15,16 +15,6 @@ const modeOptions: { value: ClinicMessagingMode; label: string; hint: string }[]
 // ---------------------------------------------------------------------------
 // Doctor
 // ---------------------------------------------------------------------------
-export function DoctorMessagesPage() {
-  return (
-    <div>
-      <div className="eyebrow">CareGuard</div>
-      <h1 className="page-title">Patient messages</h1>
-      <p className="page-lead">Non-urgent questions from your patients about their care plans. Patients are told this is not an emergency service and that replies are not immediate.</p>
-      <div className="mt-8"><CareGuardInbox role="doctor" /></div>
-    </div>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Receptionist

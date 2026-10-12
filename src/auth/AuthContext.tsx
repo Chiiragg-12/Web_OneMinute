@@ -1,60 +1,53 @@
 import { createContext, useContext, useEffect, useReducer, useState, type ReactNode } from 'react';
 import { api, setAccessToken, setSessionExpiredHandler } from '../api/client';
-import type { DoctorProfile, PatientProfile, ReceptionistProfile, UserSummary } from '../types/api';
+import type { ReceptionistProfile, UserSummary } from '../types/api';
+
+// The website is for clinic reception teams and administrators only. Patients and doctors use the mobile app.
+export type WebRole = 'receptionist' | 'admin';
+const isWebRole = (role: UserSummary['role']): role is WebRole => role === 'receptionist' || role === 'admin';
 
 type AuthState =
-  | { status: 'loading'; accessToken: null; user: null; patient: null; doctor: null; receptionist: null }
-  | { status: 'unauthenticated'; accessToken: null; user: null; patient: null; doctor: null; receptionist: null }
-  | { status: 'authenticated'; accessToken: string; user: UserSummary; patient: PatientProfile | null; doctor: DoctorProfile | null; receptionist: ReceptionistProfile | null };
+  | { status: 'loading'; accessToken: null; user: null; receptionist: null }
+  | { status: 'unauthenticated'; accessToken: null; user: null; receptionist: null }
+  | { status: 'authenticated'; accessToken: string; user: UserSummary; receptionist: ReceptionistProfile | null };
 
 type AuthAction =
-  | { type: 'authenticated'; accessToken: string; user: UserSummary; patient: PatientProfile | null; doctor: DoctorProfile | null; receptionist: ReceptionistProfile | null }
+  | { type: 'authenticated'; accessToken: string; user: UserSummary; receptionist: ReceptionistProfile | null }
   | { type: 'signedOut' };
 
-const initialState: AuthState = { status: 'loading', accessToken: null, user: null, patient: null, doctor: null, receptionist: null };
+const initialState: AuthState = { status: 'loading', accessToken: null, user: null, receptionist: null };
 
 export function authReducer(_state: AuthState, action: AuthAction): AuthState {
-  if (action.type === 'signedOut') return { status: 'unauthenticated', accessToken: null, user: null, patient: null, doctor: null, receptionist: null };
-  return { status: 'authenticated', accessToken: action.accessToken, user: action.user, patient: action.patient, doctor: action.doctor, receptionist: action.receptionist };
+  if (action.type === 'signedOut') return { status: 'unauthenticated', accessToken: null, user: null, receptionist: null };
+  return { status: 'authenticated', accessToken: action.accessToken, user: action.user, receptionist: action.receptionist };
 }
 
 interface AuthContextValue {
   state: AuthState;
   sessionExpired: boolean;
+  /** Resolves with the account's role. A patient or doctor account is not signed in here; the caller ends that session. */
   login: (input: Record<string, unknown>) => Promise<UserSummary['role']>;
-  register: (input: Record<string, unknown>, role?: UserSummary['role']) => Promise<void>;
-  googleLogin: (credential: string, role: UserSummary['role']) => Promise<void>;
-  claimDoctor: (input: Record<string, unknown>) => Promise<void>;
-  completePasswordChange: (accessToken: string) => void;
+  register: (input: Record<string, unknown>, role?: 'receptionist') => Promise<void>;
+  googleLogin: (credential: string, role: 'receptionist') => Promise<void>;
   googleOnboardReceptionist: (input: Record<string, unknown>) => Promise<void>;
   logout: (role: UserSummary['role']) => Promise<void>;
-  updatePatient: (input: Record<string, unknown>) => Promise<void>;
-  updateDoctor: (doctor: DoctorProfile) => void;
   updateReceptionist: (receptionist: ReceptionistProfile) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 async function authenticatedState(accessToken: string, user: UserSummary): Promise<Extract<AuthState, { status: 'authenticated' }>> {
-  if (user.role === 'patient') {
-    const { patient } = await api.getPatient();
-    return { status: 'authenticated', accessToken, user, patient, doctor: null, receptionist: null };
-  }
-  if (user.role === 'doctor') {
-    const { doctor } = await api.getDoctorProfile();
-    return { status: 'authenticated', accessToken, user, patient: null, doctor, receptionist: null };
-  }
   if (user.role === 'receptionist') {
     const { receptionist } = await api.getReceptionistProfile();
-    return { status: 'authenticated', accessToken, user, patient: null, doctor: null, receptionist };
+    return { status: 'authenticated', accessToken, user, receptionist };
   }
-  return { status: 'authenticated', accessToken, user, patient: null, doctor: null, receptionist: null };
+  return { status: 'authenticated', accessToken, user, receptionist: null };
 }
 
 function userFromAccessToken(token: string): UserSummary {
-  const payload = JSON.parse(atob(token.split('.')[1])) as { sub?: string; role?: UserSummary['role']; mcp?: boolean };
+  const payload = JSON.parse(atob(token.split('.')[1])) as { sub?: string; role?: UserSummary['role'] };
   if (!payload.sub || !payload.role) throw new Error('Invalid authenticated session');
-  return { id: payload.sub, role: payload.role, email: null, phone: null, mustChangePassword: payload.mcp === true };
+  return { id: payload.sub, role: payload.role, email: null, phone: null };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -67,8 +60,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void (async () => {
       try {
         const token = await api.refresh();
-        const next = await authenticatedState(token, userFromAccessToken(token));
-        dispatch({ type: 'authenticated', accessToken: token, user: next.user, patient: next.patient, doctor: next.doctor, receptionist: next.receptionist });
+        const user = userFromAccessToken(token);
+        if (!isWebRole(user.role)) throw new Error('Not a website account');
+        const next = await authenticatedState(token, user);
+        dispatch({ type: 'authenticated', accessToken: token, user: next.user, receptionist: next.receptionist });
       } catch {
         void api.logout().catch(() => undefined);
         signOut();
@@ -78,55 +73,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = async (input: Record<string, unknown>) => {
-    const result = await api.login(input); setAccessToken(result.accessToken);
-    try { const next = await authenticatedState(result.accessToken, result.user); setSessionExpired(false); dispatch({ type: 'authenticated', accessToken: next.accessToken, user: next.user, patient: next.patient, doctor: next.doctor, receptionist: next.receptionist }); return next.user.role; }
+    const result = await api.login(input);
+    if (!isWebRole(result.user.role)) return result.user.role;
+    setAccessToken(result.accessToken);
+    try {
+      const next = await authenticatedState(result.accessToken, result.user);
+      setSessionExpired(false);
+      dispatch({ type: 'authenticated', accessToken: next.accessToken, user: next.user, receptionist: next.receptionist });
+      return next.user.role;
+    } catch (error) { setAccessToken(null); throw error; }
+  };
+
+  const register = async (input: Record<string, unknown>) => {
+    const result = await api.registerReceptionist(input); setAccessToken(result.accessToken, 'receptionist');
+    try { const next = await authenticatedState(result.accessToken, result.user); dispatch({ type: 'authenticated', accessToken: next.accessToken, user: next.user, receptionist: next.receptionist }); }
     catch (error) { setAccessToken(null); throw error; }
   };
 
-  const register = async (input: Record<string, unknown>, role: UserSummary['role'] = 'patient') => {
-    const result = role === 'doctor' ? await api.registerDoctor(input) : role === 'receptionist' ? await api.registerReceptionist(input) : await api.registerPatient(input); setAccessToken(result.accessToken, role);
-    try { const next = await authenticatedState(result.accessToken, result.user); dispatch({ type: 'authenticated', accessToken: next.accessToken, user: next.user, patient: next.patient, doctor: next.doctor, receptionist: next.receptionist }); }
-    catch (error) { setAccessToken(null); throw error; }
-  };
-
-  const googleLogin = async (credential: string, role: UserSummary['role']) => {
+  const googleLogin = async (credential: string, role: 'receptionist') => {
     const result = await api.googleLogin(role, credential); setAccessToken(result.accessToken, role);
     const next = await authenticatedState(result.accessToken, result.user);
-    dispatch({ type: 'authenticated', accessToken: next.accessToken, user: next.user, patient: next.patient, doctor: next.doctor, receptionist: next.receptionist });
-  };
-
-  const claimDoctor = async (input: Record<string, unknown>) => {
-    const result = await api.claimDoctor(input); setAccessToken(result.accessToken, 'doctor');
-    try { const next = await authenticatedState(result.accessToken, result.user); setSessionExpired(false); dispatch({ type: 'authenticated', accessToken: next.accessToken, user: next.user, patient: next.patient, doctor: next.doctor, receptionist: next.receptionist }); }
-    catch (error) { setAccessToken(null); throw error; }
-  };
-
-  const completePasswordChange = (accessToken: string) => {
-    if (state.status !== 'authenticated') return;
-    setAccessToken(accessToken, state.user.role);
-    dispatch({ type: 'authenticated', accessToken, user: { ...state.user, mustChangePassword: false }, patient: state.patient, doctor: state.doctor, receptionist: state.receptionist });
+    dispatch({ type: 'authenticated', accessToken: next.accessToken, user: next.user, receptionist: next.receptionist });
   };
 
   const googleOnboardReceptionist = async (input: Record<string, unknown>) => {
     const result = await api.googleOnboardReceptionist(input); setAccessToken(result.accessToken, 'receptionist');
     const next = await authenticatedState(result.accessToken, result.user);
-    dispatch({ type: 'authenticated', accessToken: next.accessToken, user: next.user, patient: null, doctor: null, receptionist: next.receptionist });
+    dispatch({ type: 'authenticated', accessToken: next.accessToken, user: next.user, receptionist: next.receptionist });
   };
 
   const logout = async (role: UserSummary['role']) => { try { await api.logout(role); } finally { if (state.status !== 'authenticated' || state.user.role === role) signOut(); } };
-  const updatePatient = async (input: Record<string, unknown>) => {
-    const result = await api.updatePatient(input);
-    if (state.status === 'authenticated' && state.user.role === 'patient') dispatch({ type: 'authenticated', accessToken: state.accessToken, user: state.user, patient: result.patient, doctor: null, receptionist: null });
-  };
-  const updateDoctor = (doctor: DoctorProfile) => {
-    if (state.status === 'authenticated' && state.user.role === 'doctor') dispatch({ type: 'authenticated', accessToken: state.accessToken, user: state.user, patient: null, doctor, receptionist: null });
-  };
 
   const updateReceptionist = (receptionist: ReceptionistProfile) => {
-    if (state.status === 'authenticated' && state.user.role === 'receptionist') dispatch({ type: 'authenticated', accessToken: state.accessToken, user: state.user, patient: null, doctor: null, receptionist });
+    if (state.status === 'authenticated' && state.user.role === 'receptionist') dispatch({ type: 'authenticated', accessToken: state.accessToken, user: state.user, receptionist });
   };
 
-  return <AuthContext.Provider value={{ state, sessionExpired, login, register, googleLogin, claimDoctor, completePasswordChange, googleOnboardReceptionist, logout, updatePatient, updateDoctor, updateReceptionist }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ state, sessionExpired, login, register, googleLogin, googleOnboardReceptionist, logout, updateReceptionist }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() { const context = useContext(AuthContext); if (!context) throw new Error('useAuth must be used inside AuthProvider'); return context; }

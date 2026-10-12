@@ -33,7 +33,7 @@ describe('typed API client', () => {
     let resolveRefresh: (value: Response) => void = () => undefined;
     let protectedCalls = 0;
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => {
-      if (String(input).endsWith('/api/auth/refresh/patient')) return new Promise<Response>((resolve) => { resolveRefresh = resolve; });
+      if (String(input).endsWith('/api/auth/refresh/receptionist')) return new Promise<Response>((resolve) => { resolveRefresh = resolve; });
       protectedCalls += 1;
       return Promise.resolve(protectedCalls <= 2 ? response({ error: 'expired' }, 401) : response({ patient: { healthId: 'H-1' } }));
     });
@@ -45,14 +45,14 @@ describe('typed API client', () => {
       { patient: { healthId: 'H-1' } },
       { patient: { healthId: 'H-1' } },
     ]);
-    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith('/api/auth/refresh/patient'))).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith('/api/auth/refresh/receptionist'))).toHaveLength(1);
   });
 
   it('keeps refresh work isolated per role while deduplicating same-role callers', async () => {
-    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(response({ accessToken: String(input).includes('/doctor') ? 'doctor-token' : 'patient-token' })));
-    await Promise.all([api.refresh('patient'), api.refresh('patient'), api.refresh('doctor')]);
-    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith('/api/auth/refresh/patient'))).toHaveLength(1);
-    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith('/api/auth/refresh/doctor'))).toHaveLength(1);
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockImplementation((input) => Promise.resolve(response({ accessToken: String(input).includes('/admin') ? 'admin-token' : 'receptionist-token' })));
+    await Promise.all([api.refresh('receptionist'), api.refresh('receptionist'), api.refresh('admin')]);
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith('/api/auth/refresh/receptionist'))).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith('/api/auth/refresh/admin'))).toHaveLength(1);
   });
 
   it('notifies session expiry once when concurrent refresh fails', async () => {
@@ -62,7 +62,7 @@ describe('typed API client', () => {
       .mockResolvedValueOnce(response({ error: 'refresh expired' }, 401))
       .mockResolvedValueOnce(response({ error: 'expired' }, 401));
     await expect(Promise.allSettled([request('/api/patients/me'), request('/api/appointments')])).resolves.toHaveLength(2);
-    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith('/api/auth/refresh/patient'))).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter((call) => String(call[0]).endsWith('/api/auth/refresh/receptionist'))).toHaveLength(1);
     expect(onExpired).toHaveBeenCalledOnce();
   });
 
@@ -80,11 +80,11 @@ describe('typed API client', () => {
     expect(fetchMock.mock.calls[0][1]).toMatchObject({ method: 'POST', credentials: 'include' });
   });
 
-  it('uses role-isolated refresh and logout endpoints for Doctor routes', async () => {
-    window.history.pushState({}, '', '/doctor/login');
+  it('uses role-isolated refresh and logout endpoints for Admin routes', async () => {
+    window.history.pushState({}, '', '/admin/login');
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(response({ accessToken: 'fresh' }));
     await api.refresh(); await api.logout();
-    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/auth/refresh/doctor');
-    expect(String(fetchMock.mock.calls[1][0])).toContain('/api/auth/logout/doctor');
+    expect(String(fetchMock.mock.calls[0][0])).toContain('/api/auth/refresh/admin');
+    expect(String(fetchMock.mock.calls[1][0])).toContain('/api/auth/logout/admin');
   });
 });

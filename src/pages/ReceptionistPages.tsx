@@ -4,7 +4,7 @@ import { createPortal } from "react-dom";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
 import { openRazorpayCheckout } from "../utils/razorpay";
-import { FinalPrescriptionContent } from "./BookingPages";
+import { FinalPrescriptionContent } from "../components/FinalPrescription";
 import { ReceptionistStatusPage } from './ReceptionistStatusPage';
 import { useReceptionistContext } from "../components/ReceptionistLayout";
 import {
