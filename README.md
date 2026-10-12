@@ -13,6 +13,17 @@ npm run dev              # http://localhost:5173
 
 The backend (`cd ../backend && npm run dev`, port 4000) must be running. Sign in with the demo accounts from the root `README.md`.
 
+## Demo logins (local, after the backend seed)
+
+Sign in at `http://localhost:5173/` (one form for both roles; after signing in you land on your own dashboard).
+
+| Role | Email | Password |
+|---|---|---|
+| Receptionist | `demo.receptionist@oneminute.local` | `DemoPass123!` |
+| Admin | `demo.admin@oneminute.local` | `DemoPass123!` |
+
+Local development only; never use these in production. Patients and doctors cannot sign in on the website.
+
 ## Scripts
 
 | Command | What it does |
@@ -31,17 +42,17 @@ The backend (`cd ../backend && npm run dev`, port 4000) must be running. Sign in
 
 | Path | Page |
 |---|---|
-| `/` | landing page |
-| `/receptionist/login`, `/receptionist/register` | reception sign-in; sign-up creates the clinic |
+| `/` | the sign-in for reception and admin, always shown; after signing in a receptionist goes to `/receptionist` and an admin to `/admin`; links to Privacy and Terms |
+| `/receptionist/register` | reception sign-up (creates the clinic); `/receptionist/login` and `/admin/login` just lead to `/` |
 | `/receptionist/*` | queue, appointments, walk-in registration, add doctor and invite codes, plans and CareGuard inbox, finance, status, history |
-| `/admin/login`, `/admin/signup` | admin sign-in and sign-up |
+| `/admin/signup` | first-admin sign-up |
 | `/admin/*` | clinics, settlement, users |
 | `/privacy`, `/terms` | public legal pages |
 | `/get-the-app` | shown for old patient and doctor addresses (`/login`, `/register`, `/app/*`, `/doctor/*`) |
 
 ## Layout
 
-`src/App.tsx` (routes), `src/pages/` (receptionist, admin, auth, landing, legal), `src/components/` (layouts, nav, CareGuard inbox, invite card, final prescription), `src/api/client.ts` (fetch client, refreshes the session once on 401), `src/auth/AuthContext.tsx` (refuses patient and doctor accounts).
+`src/App.tsx` (routes), `src/pages/` (receptionist, admin, auth, legal, get-the-app), `src/components/` (layouts, nav, CareGuard inbox, invite card, final prescription), `src/api/client.ts` (fetch client, refreshes the session once on 401), `src/auth/AuthContext.tsx` (refuses patient and doctor accounts).
 
 ## Notes
 

@@ -1,9 +1,7 @@
-import { CalendarClock, CalendarDays, ChartNoAxesCombined, ClipboardList, CreditCard, HeartPulse, Menu, MessageSquare, PlusCircle, Star, UserRound, UserPlus } from 'lucide-react';
-import { useCallback, useState } from 'react';
-import { Navigate, NavLink, Outlet, useLocation, useOutletContext } from 'react-router-dom';
+import { CalendarClock, CalendarDays, ChartNoAxesCombined, ClipboardList, CreditCard, HeartPulse, MessageSquare, PlusCircle, Star, UserRound, UserPlus } from 'lucide-react';
+import { Navigate, Outlet, useLocation, useOutletContext } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
-import { NavDrawer } from './NavDrawer';
-import { UserMenu } from './UserMenu';
+import { AppShell, type ShellGroup } from './AppShell';
 import type { ReceptionistProfile } from '../types/api';
 
 export interface ReceptionistContext { receptionist: ReceptionistProfile; }
@@ -12,8 +10,6 @@ export function useReceptionistContext() { return useOutletContext<ReceptionistC
 export function ReceptionistLayout() {
   const { state, logout } = useAuth();
   const location = useLocation();
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const receptionist = state.status === 'authenticated' ? state.receptionist : null;
   if (!receptionist) return null;
   if (!receptionist.clinic) return null;
@@ -35,5 +31,27 @@ export function ReceptionistLayout() {
     { to: '/receptionist/messages', label: 'Messages', Icon: MessageSquare, active: location.pathname === '/receptionist/messages' },
     { to: '/receptionist/plans', label: 'Plans', Icon: Star, active: location.pathname === '/receptionist/plans' },
   ];
-  return <div className="min-h-screen bg-[#f4f8f6] text-slate-900"><header className="border-b border-slate-200/80 bg-white/90 backdrop-blur"><div className="shell flex min-h-20 items-center justify-between gap-4"><div className="flex items-center gap-3"><button className="icon-button lg:hidden" type="button" aria-label="Open navigation" onClick={() => setDrawerOpen(true)}><Menu size={19} /></button><NavLink to="/receptionist" className="flex items-center gap-3"><span className="grid size-10 place-items-center rounded-xl bg-teal-800 text-white"><HeartPulse size={21} /></span><span><strong className="font-display text-lg">OneMinute</strong><span className="ml-2 hidden text-xs font-bold uppercase tracking-[.18em] text-teal-700 sm:inline">Receptionist care</span></span></NavLink></div><div className="flex items-center gap-3"><span className="hidden text-sm text-slate-500 sm:inline">{receptionist.fullName}</span><UserMenu onSignOut={() => void logout('receptionist')} /></div></div></header><NavDrawer open={drawerOpen} onClose={closeDrawer} title="Menu" items={navigation} /><div className="shell grid gap-8 py-7 lg:grid-cols-[220px_1fr]"><aside className="hidden lg:block"><nav className="sticky top-7 space-y-1">{navigation.map(({ to, label, Icon, active }) => <NavLink key={to} className={() => active ? 'nav-link active' : 'nav-link'} to={to}><Icon size={17} />{label}</NavLink>)}</nav></aside><main className="min-w-0"><div className="mb-6 rounded-2xl border border-slate-200 bg-white p-4"><p className="label">Assigned clinic</p><p className="mt-1 font-display text-lg font-semibold">{receptionist.clinic.name}</p><p className="mt-1 text-sm text-slate-500">{receptionist.clinic.isActive ? 'Active clinic' : 'Clinic unavailable'}</p></div><Outlet context={{ receptionist }} /></main></div><nav className="fixed inset-x-0 bottom-0 z-10 grid grid-cols-4 border-t border-slate-200 bg-white/95 p-2 backdrop-blur lg:hidden">{navigation.slice(0, 4).map(({ to, label, Icon, active }) => <NavLink key={to} className={() => active ? 'mobile-nav active' : 'mobile-nav'} to={to}><Icon size={17} />{label}</NavLink>)}</nav></div>;
+  const groups: ShellGroup[] = [
+    { items: [navigation[0]] },
+    { label: 'Appointments', items: [navigation[1], navigation[2], navigation[3], navigation[8], navigation[6]] },
+    { label: 'Clinic', items: [navigation[7], navigation[4], navigation[5]] },
+    { label: 'CareGuard', items: [navigation[10], navigation[11]] },
+    { label: 'Account', items: [navigation[12], navigation[9]] },
+  ];
+  return (
+    <AppShell
+      homeTo="/receptionist"
+      subtitle={receptionist.clinic.name}
+      groups={groups}
+      onSignOut={() => void logout('receptionist')}
+      user={{
+        name: receptionist.fullName,
+        email: state.status === 'authenticated' ? state.user.email : null,
+        context: [{ label: 'Role', value: 'Receptionist' }, { label: 'Clinic', value: `${receptionist.clinic.name}${receptionist.clinic.isActive ? '' : ' (unavailable)'}` }],
+        accountLinks: [{ to: '/receptionist/profile', label: 'Account settings', Icon: UserRound }],
+      }}
+    >
+      <Outlet context={{ receptionist }} />
+    </AppShell>
+  );
 }

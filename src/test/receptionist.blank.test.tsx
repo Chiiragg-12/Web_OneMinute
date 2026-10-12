@@ -22,8 +22,8 @@ beforeEach(() => {
 });
 
 describe('Receptionist login blank-page regression', () => {
-  it('routes an authenticated Receptionist from login to the Receptionist overview', async () => {
-    render(<MemoryRouter initialEntries={['/receptionist/login']}><App /></MemoryRouter>);
+  it('opens the Receptionist overview for an authenticated Receptionist to the Receptionist overview', async () => {
+    render(<MemoryRouter initialEntries={['/receptionist']}><App /></MemoryRouter>);
 
     expect(await screen.findByText('Clinic day at a glance')).toBeInTheDocument();
     expect(screen.getByText('OneMinute Demo Clinic')).toBeInTheDocument();

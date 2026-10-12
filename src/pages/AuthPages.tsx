@@ -197,15 +197,25 @@ function SessionExpiredNotice() {
 export function LoginPage({
   audience = "receptionist",
 }: {
-  audience?: WebRole;
+  audience?: WebRole | "staff";
 }) {
-  const redirect = useAuthRedirect(audience);
-  if (redirect) return redirect;
+  // "/" always shows the form; the old role-specific addresses just lead here.
+  const redirect = useAuthRedirect(audience === "staff" ? undefined : audience);
+  if (audience !== "staff" && redirect) return redirect;
   const { login, logout, sessionExpired } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  // "staff" is the sign-in at "/": reception or admin, each sent to their own dashboard.
   const copy =
-    audience === "admin"
+    audience === "staff"
+      ? {
+          app: "ONEMINUTE HEALTHCARE",
+          title: "Welcome back",
+          supporting: "Sign in to your clinic or admin workspace.",
+          path: "/",
+          role: "receptionist" as const,
+        }
+      : audience === "admin"
       ? {
           app: "ADMIN CONSOLE",
           title: "Financial operations",
@@ -236,15 +246,16 @@ export function LoginPage({
           : { phone: identifier }),
         password,
       });
-      if (role !== copy.role) {
+      const allowed = audience === "staff" ? role === "receptionist" || role === "admin" : role === copy.role;
+      if (!allowed) {
         await logout(role);
         throw new ApiError(
           403,
-          `This login is for ${copy.app.toLowerCase()} accounts.`,
+          audience === "staff" ? "This sign-in is for clinic reception and admin accounts. Patients and doctors use the mobile app." : `This login is for ${copy.app.toLowerCase()} accounts.`,
         );
       }
       navigate(
-        safeReturnTo((location.state as { from?: unknown } | null)?.from, role),
+        safeReturnTo((location.state as { from?: unknown } | null)?.from, role as WebRole),
         { replace: true },
       );
     } catch (nextError) {
@@ -305,17 +316,13 @@ export function LoginPage({
               Create New Account
             </Link>
           </p>
-          <p className="mt-3 text-sm text-slate-500">
-            Doctor or patient?{" "}
-            <Link
-              className="font-semibold text-teal-700 hover:text-teal-900"
-              to="/get-the-app"
-            >
-              Use the OneMinute app
-            </Link>
-          </p>
         </>
       ) : null}
+      <p className="mt-7 text-xs text-slate-500">
+        <Link className="font-semibold text-teal-700 hover:text-teal-900" to="/privacy">Privacy Policy</Link>
+        {" · "}
+        <Link className="font-semibold text-teal-700 hover:text-teal-900" to="/terms">Terms of Service</Link>
+      </p>
     </AuthFrame>
   );
 }
@@ -395,7 +402,7 @@ export function StaffRegisterPage({
       eyebrow={`${role.toUpperCase()} APP`}
       title="Create your account"
       supportingText="Onboard your clinic and manage it on OneMinute."
-      loginPath="/receptionist/login"
+      loginPath="/"
     >
       <form className="mt-8 space-y-5" onSubmit={submit}>
         {error ? <ApiErrorState error={error} /> : null}
@@ -511,7 +518,7 @@ export function StaffRegisterPage({
         Already registered?{" "}
         <Link
           className="font-semibold text-teal-700"
-          to="/receptionist/login"
+          to="/"
         >
           Sign in
         </Link>

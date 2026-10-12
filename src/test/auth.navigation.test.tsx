@@ -28,12 +28,13 @@ beforeEach(() => {
 });
 
 describe('the website is for reception and admin', () => {
-  it('opens on a page that points reception, admin and everyone else to the right place', async () => {
+  it('opens on the sign-in page for reception and admin', async () => {
     renderApp('/');
-    expect(await screen.findByText('Clinic and administration console')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Clinic reception/ })).toHaveAttribute('href', '/receptionist/login');
-    expect(screen.getByRole('link', { name: /Administration/ })).toHaveAttribute('href', '/admin/login');
-    expect(screen.getByRole('link', { name: /Patients and doctors/ })).toHaveAttribute('href', '/get-the-app');
+    expect(await screen.findByText('Welcome back')).toBeInTheDocument();
+    expect(screen.getByLabelText('Email or phone')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Privacy Policy' })).toHaveAttribute('href', '/privacy');
+    expect(screen.getByRole('link', { name: 'Terms of Service' })).toHaveAttribute('href', '/terms');
+    expect(screen.queryByText('Use the OneMinute app')).toBeNull();
   });
 
   it.each(['/login', '/register', '/doctor', '/doctor/login', '/doctor/claim', '/app', '/app/appointments/abc'])('tells someone who opens the old patient or doctor address %s to use the app', async (path) => {
@@ -47,52 +48,52 @@ describe('the website is for reception and admin', () => {
     expect(await screen.findByRole('heading', { name: 'Privacy Policy' })).toBeInTheDocument();
   });
 
-  it('sends unknown addresses to the home page', async () => {
+  it('sends unknown addresses to the sign-in page', async () => {
     renderApp('/something/else');
-    expect(await screen.findByText('Clinic and administration console')).toBeInTheDocument();
+    expect(await screen.findByText('Welcome back')).toBeInTheDocument();
   });
 });
 
 describe('role-scoped auth navigation', () => {
   it('sends a signed-out visitor from a reception page to the reception login, and from an admin page to the admin login', async () => {
     renderApp('/receptionist/appointments');
-    expect((await screen.findAllByText('RECEPTIONIST APP')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('ONEMINUTE HEALTHCARE')).length).toBeGreaterThan(0);
     renderApp('/admin/payments');
-    expect((await screen.findAllByText('ADMIN CONSOLE')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('ONEMINUTE HEALTHCARE')).length).toBeGreaterThan(0);
   });
 
   it('does not treat a reception session as an admin session', async () => {
     mocks.api.refresh.mockResolvedValue(token('receptionist'));
-    renderApp('/admin/login');
-    expect((await screen.findAllByText('ADMIN CONSOLE')).length).toBeGreaterThan(0);
+    renderApp('/admin');
+    expect((await screen.findAllByText('ONEMINUTE HEALTHCARE')).length).toBeGreaterThan(0);
     expect(screen.queryByText('Financial operations overview')).not.toBeInTheDocument();
   });
 
   it.each(['patient', 'doctor'])('does not keep a %s session on the website', async (role) => {
     mocks.api.refresh.mockResolvedValue(token(role));
     renderApp('/receptionist');
-    expect((await screen.findAllByText('RECEPTIONIST APP')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('ONEMINUTE HEALTHCARE')).length).toBeGreaterThan(0);
     expect(mocks.api.getReceptionistProfile).not.toHaveBeenCalled();
   });
 
   it.each(['patient', 'doctor'])('refuses a %s account on the reception login and ends the session it opened', async (role) => {
     mocks.api.login.mockResolvedValue({ accessToken: token(role), user: { id: 'u1', role } });
     const user = userEvent.setup();
-    renderApp('/receptionist/login');
+    renderApp('/');
     await screen.findByText('Welcome back');
     await user.type(screen.getByLabelText('Email or phone'), 'someone@example.com');
     await user.type(screen.getByLabelText('Password'), 'password123');
     await user.click(screen.getByRole('button', { name: /sign in/i }));
     expect(await screen.findByText('Unable to sign in')).toBeInTheDocument();
-    expect(screen.getByText(/This login is for receptionist app accounts/)).toBeInTheDocument();
+    expect(screen.getByText(/This sign-in is for clinic reception and admin accounts/)).toBeInTheDocument();
     expect(mocks.api.logout).toHaveBeenCalledWith(role);
     expect(mocks.api.getReceptionistProfile).not.toHaveBeenCalled();
   });
 
   it.each(['Missing refresh token', 'Invalid or expired refresh token'])('never renders a bootstrap %s error on Receptionist login', async (message) => {
     mocks.api.refresh.mockRejectedValue(new Error(message));
-    renderApp('/receptionist/login');
-    expect((await screen.findAllByText('RECEPTIONIST APP')).length).toBeGreaterThan(0);
+    renderApp('/');
+    expect((await screen.findAllByText('ONEMINUTE HEALTHCARE')).length).toBeGreaterThan(0);
     expect(screen.queryByText('Your session has ended')).not.toBeInTheDocument();
     expect(screen.queryByText(message)).not.toBeInTheDocument();
     await waitFor(() => expect(mocks.api.logout).toHaveBeenCalled());
@@ -101,7 +102,7 @@ describe('role-scoped auth navigation', () => {
   it('shows credential-specific feedback for a failed Receptionist login without refreshing', async () => {
     mocks.api.login.mockRejectedValue(new Error('Invalid email/phone or password'));
     const user = userEvent.setup();
-    renderApp('/receptionist/login');
+    renderApp('/');
     await screen.findByText('Welcome back');
     await user.type(screen.getByLabelText('Email or phone'), 'receptionist@example.com');
     await user.type(screen.getByLabelText('Password'), 'wrong-password');
@@ -116,7 +117,7 @@ describe('role-scoped auth navigation', () => {
     renderApp('/receptionist');
     await waitFor(() => expect(sessionExpiredHandler).toBeTypeOf('function'));
     act(() => sessionExpiredHandler?.());
-    expect((await screen.findAllByText('RECEPTIONIST APP')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('ONEMINUTE HEALTHCARE')).length).toBeGreaterThan(0);
     expect(screen.getByText('Your session has expired')).toBeInTheDocument();
     expect(screen.getByText('Please sign in again.')).toBeInTheDocument();
     expect(screen.queryByText('Invalid or expired refresh token')).not.toBeInTheDocument();

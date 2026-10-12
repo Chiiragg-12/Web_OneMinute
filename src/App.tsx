@@ -12,13 +12,13 @@ import { AdminAuditLogPage, AdminClinicDetailPage, AdminClinicsPage, AdminCommis
 import { AdminSignupPage } from './pages/AdminSignupPage';
 import { PrivacyPolicyPage, TermsOfServicePage } from './pages/LegalPages';
 import { ReceptionistFollowUpsPage, ReceptionistMessagesPage } from './pages/CareGuardClinicPages';
-import { GetTheAppPage, HomePage } from './pages/LandingPages';
+import { GetTheAppPage } from './pages/LandingPages';
 
 function ReceptionistGuard() {
   const location = useLocation();
   const { state } = useAuth();
   if (state.status === 'loading') return <div className="screen-loading">Checking your session…</div>;
-  if (state.status !== 'authenticated' || state.user.role !== 'receptionist' || !state.receptionist) return <Navigate to="/receptionist/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
+  if (state.status !== 'authenticated' || state.user.role !== 'receptionist' || !state.receptionist) return <Navigate to="/" replace state={{ from: `${location.pathname}${location.search}` }} />;
   return <Outlet />;
 }
 
@@ -26,7 +26,7 @@ function AdminGuard() {
   const location = useLocation();
   const { state } = useAuth();
   if (state.status === 'loading') return <div className="screen-loading">Checking your session…</div>;
-  if (state.status !== 'authenticated' || state.user.role !== 'admin') return <Navigate to="/admin/login" replace state={{ from: `${location.pathname}${location.search}` }} />;
+  if (state.status !== 'authenticated' || state.user.role !== 'admin') return <Navigate to="/" replace state={{ from: `${location.pathname}${location.search}` }} />;
   return <Outlet />;
 }
 
@@ -36,15 +36,15 @@ const appOnlyPaths = ['/login', '/register', '/doctor/*', '/app/*'];
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
+      <Route path="/" element={<LoginPage audience="staff" />} />
       <Route path="/get-the-app" element={<GetTheAppPage />} />
       {appOnlyPaths.map((path) => <Route key={path} path={path} element={<GetTheAppPage />} />)}
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
       <Route path="/terms" element={<TermsOfServicePage />} />
-      <Route path="/receptionist/login" element={<LoginPage audience="receptionist" />} />
+      <Route path="/receptionist/login" element={<Navigate to="/" replace />} />
       <Route path="/receptionist/register" element={<StaffRegisterPage role="receptionist" />} />
       <Route path="/admin/signup" element={<AdminSignupPage />} />
-      <Route path="/admin/login" element={<LoginPage audience="admin" />} />
+      <Route path="/admin/login" element={<Navigate to="/" replace />} />
       <Route element={<AdminGuard />}>
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminOverviewPage />} />

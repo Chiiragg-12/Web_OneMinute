@@ -56,9 +56,7 @@ describe('Receptionist frontend', () => {
   it('keeps the content wrapper eligible for the shell.py-7 bottom-nav clearance padding so the fixed mobile/tablet nav never covers the page', async () => {
     renderReceptionist('/receptionist/queue');
     await screen.findByText('Queue control');
-    const contentWrapper = document.querySelector('main')?.parentElement;
-    expect(contentWrapper?.className).toContain('shell');
-    expect(contentWrapper?.className).toContain('py-7');
+    expect(document.querySelector('main')?.className).toContain('shell-content');
   });
 
   it('shows the server-computed position and estimated wait for each waiting patient, using the same ETA the patient tracker relies on', async () => {

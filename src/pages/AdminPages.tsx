@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Link, Outlet, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Link, Outlet, useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
-import { ApiErrorState, Button, LoadingState } from '../components/ui';
+import { Building2, CreditCard, Landmark, LayoutDashboard, Percent, Scale, ScrollText } from 'lucide-react';
+import { AppShell, type ShellGroup } from '../components/AppShell';
+import { ApiErrorState, LoadingState } from '../components/ui';
 
 function period() {
   const end = new Date();
@@ -24,11 +26,23 @@ function issueLabel(type: string) {
 }
 
 export function AdminLayout() {
-  const { logout } = useAuth();
+  const { state, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const links = [['/admin', 'Overview'], ['/admin/payments', 'Payments'], ['/admin/clinics', 'Clinics'], ['/admin/commissions', 'Commissions'], ['/admin/settlements', 'Settlements'], ['/admin/reconciliation', 'Reconciliation'], ['/admin/audit-log', 'Audit Log']];
-  return <div className="min-h-screen bg-[#f4f8f6]"><header className="border-b border-slate-200 bg-white"><div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-8"><div><p className="eyebrow">OneMinute Admin</p><strong className="font-display text-xl text-slate-950">Financial operations</strong></div><div className="flex items-center gap-4"><Button variant="quiet" onClick={() => void logout('admin').then(() => navigate('/admin/login'))}>Sign out</Button></div></div><nav className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-5 pb-3 sm:px-8">{links.map(([to, label]) => <Link className={location.pathname === to || (to !== '/admin' && location.pathname.startsWith(`${to}/`)) ? 'button button-primary whitespace-nowrap' : 'button button-quiet whitespace-nowrap'} key={to} to={to}>{label}</Link>)}</nav></header><main className="mx-auto max-w-7xl px-5 py-8 sm:px-8"><Outlet /></main></div>;
+  const groups: ShellGroup[] = [
+    { items: [{ to: '/admin', label: 'Overview', Icon: LayoutDashboard, end: true }] },
+    { label: 'Money', items: [{ to: '/admin/payments', label: 'Payments', Icon: CreditCard }, { to: '/admin/commissions', label: 'Commissions', Icon: Percent }, { to: '/admin/settlements', label: 'Settlements', Icon: Landmark }, { to: '/admin/reconciliation', label: 'Reconciliation', Icon: Scale }] },
+    { label: 'Platform', items: [{ to: '/admin/clinics', label: 'Clinics', Icon: Building2 }, { to: '/admin/audit-log', label: 'Audit Log', Icon: ScrollText }] },
+  ];
+  return (
+    <AppShell
+      homeTo="/admin"
+      groups={groups}
+      onSignOut={() => void logout('admin').then(() => navigate('/'))}
+      user={{ name: 'Administrator', email: state.status === 'authenticated' ? state.user.email : null, context: [{ label: 'Role', value: 'Admin' }, { label: 'Workspace', value: 'Financial operations' }] }}
+    >
+      <Outlet />
+    </AppShell>
+  );
 }
 
 export function AdminOverviewPage() {

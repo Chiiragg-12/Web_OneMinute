@@ -1,4 +1,4 @@
-import { cleanup, render } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ReceptionistLayout } from '../components/ReceptionistLayout';
@@ -25,6 +25,5 @@ beforeEach(() => { mocks.useAuth.mockReturnValue({ state: { status: 'authenticat
 afterEach(cleanup);
 
 describe('Receptionist navigation active state', () => {
-  it.each(routes)('highlights only %s as active on desktop', (path, label) => { renderLayout(path); expect(activeLabels('aside')).toEqual([label]); });
-  it.each(routes.slice(0, 4))('highlights only %s as active in the mobile navigation', (path, label) => { renderLayout(path); expect(activeLabels('nav.fixed')).toEqual([label]); });
+  it.each(routes)('highlights only %s as active on desktop', (path, label) => { renderLayout(path); expect(activeLabels('aside')).toEqual([label]); expect(screen.getByRole('heading', { level: 2 })).toHaveTextContent(label); });
 });

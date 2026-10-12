@@ -167,3 +167,48 @@ main > :not(.loading-delayed) { animation: page-in .18s ease-out backwards; }
   .prescription-print-portal > div:nth-of-type(2), .prescription-print-portal > div:nth-of-type(3), .prescription-print-portal > p { break-inside: avoid; }
   .prescription-print-portal .border { border-color: #d1d5db !important; }
 }
+
+/* App shell: sidebar + header for reception and admin */
+.shell-root { min-height: 100vh; background: #f4f8f6; color: #0f2a2b; }
+.shell-sidebar { display: none; }
+.shell-main { min-width: 0; }
+.shell-header { position: sticky; top: 0; z-index: 20; display: flex; height: 4rem; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid #dfeae6; background: rgba(255,255,255,.92); padding-inline: 1rem; backdrop-filter: blur(8px); }
+.shell-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; font-weight: 600; color: #102a2b; }
+.shell-content { padding: 1.25rem 1rem 2.5rem; }
+.shell-brand { display: flex; align-items: center; justify-content: center; padding: 1.1rem 1rem .6rem; }
+.shell-brand-link { display: block; width: 100%; max-width: 9.5rem; }
+.shell-brand-link .brand-logo { width: 100%; }
+.shell-nav { display: flex; flex-direction: column; gap: .35rem; padding: .5rem .75rem 1rem; }
+.shell-group { display: flex; flex-direction: column; gap: .15rem; }
+.shell-group + .shell-group { margin-top: .6rem; }
+.shell-group-label { padding: .4rem .7rem .3rem; color: #4b6664; font-size: .78rem; font-weight: 700; }
+.shell-group-rule { margin: .2rem .5rem .4rem; border-top: 1px solid #dfeae6; }
+.shell-link { display: flex; align-items: center; gap: .7rem; border-radius: .6rem; padding: .6rem .7rem; color: #3f5a58; font-size: .9rem; font-weight: 500; }
+.shell-link:hover { background: #eef6f3; }
+.shell-link.active { background: #e3f1ec; color: #086f69; font-weight: 600; box-shadow: inset -3px 0 0 #087f78; }
+.shell-avatar { display: inline-grid; width: 2.4rem; height: 2.4rem; place-items: center; border-radius: 999px; background: #0b6b68; color: #fff; font-size: .8rem; font-weight: 700; }
+.shell-avatar-lg { width: 3rem; height: 3rem; flex: 0 0 auto; font-size: .95rem; }
+.shell-popover { position: absolute; right: 0; top: calc(100% + .6rem); z-index: 40; width: min(20rem, calc(100vw - 2rem)); border: 1px solid #dfeae6; border-radius: 1rem; background: #fff; padding: .9rem; box-shadow: 0 18px 45px rgba(30,70,65,.18); }
+.shell-popover-head { display: flex; align-items: center; gap: .75rem; padding-bottom: .8rem; border-bottom: 1px solid #edf3f0; }
+.shell-signout { color: #b13a3a; }
+.shell-popover-label { margin: .8rem 0 .3rem; color: #6b8280; font-size: .7rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.shell-context { display: flex; flex-direction: column; border-radius: .6rem; padding: .45rem .5rem; font-size: .8rem; color: #607775; }
+.shell-context strong { color: #142f30; font-size: .9rem; font-weight: 600; overflow-wrap: anywhere; }
+.shell-popover-link { display: flex; align-items: center; gap: .6rem; border-radius: .6rem; padding: .55rem .5rem; color: #142f30; font-size: .9rem; }
+.shell-popover-link:hover { background: #eef6f3; }
+.shell-popover-foot { display: flex; gap: 1rem; margin-top: .8rem; padding-top: .7rem; border-top: 1px solid #edf3f0; font-size: .75rem; font-weight: 600; color: #087f78; }
+@media (min-width: 1024px) {
+  .shell-sidebar { position: fixed; inset-block: 0; left: 0; z-index: 30; display: block; width: 16.5rem; overflow-y: auto; border-right: 1px solid #dfeae6; background: #fff; transition: width .18s ease; }
+  .shell-sidebar.collapsed { width: 4.75rem; }
+  .shell-sidebar.collapsed .shell-brand { padding-inline: .5rem; }
+  .shell-sidebar.collapsed .shell-brand-link { display: grid; place-items: center; }
+  .shell-sidebar.collapsed .shell-link { justify-content: center; }
+  .shell-sidebar.collapsed .shell-nav { padding-inline: .5rem; }
+  .shell-collapse { position: absolute; right: .55rem; top: 1.4rem; display: grid; width: 1.6rem; height: 1.6rem; place-items: center; border: 1px solid #dfeae6; border-radius: 999px; background: #fff; color: #4b6664; }
+  .shell-sidebar.collapsed .shell-collapse { position: static; margin: 0 auto .4rem; }
+  .shell-main { margin-left: 16.5rem; transition: margin .18s ease; }
+  .shell-sidebar.collapsed ~ .shell-main { margin-left: 4.75rem; }
+  .shell-header { padding-inline: 2rem; }
+  .shell-content { padding: 1.75rem 2rem 3rem; }
+}
+@media (max-width: 1023px) { .shell-collapse { display: none; } }

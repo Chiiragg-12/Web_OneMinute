@@ -1,18 +1,13 @@
 import { Link } from 'react-router-dom';
-import { BrandLogo } from '../components/BrandLogo';
 
 function LegalShell({ title, intro, children }: { title: string; intro: string; children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#f4f8f6] px-4 py-8 text-slate-800 sm:px-8">
-      <header className="mx-auto flex max-w-4xl items-center justify-between rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
-        <Link to="/" aria-label="OneMinute Healthcare home" className="flex items-center gap-3">
-          <BrandLogo />
-          <span className="hidden font-display text-lg font-semibold text-slate-950 sm:inline">OneMinute Healthcare</span>
-        </Link>
-        <Link to="/login" className="text-sm font-semibold text-teal-700 hover:text-teal-900">Sign in</Link>
-      </header>
       <main className="mx-auto mt-8 max-w-4xl rounded-3xl border border-slate-200 bg-white px-6 py-8 shadow-sm sm:px-10 sm:py-12">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-700">OneMinute Healthcare</p>
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-teal-700">OneMinute Healthcare</p>
+          <Link to="/" className="text-sm font-semibold text-teal-700 hover:text-teal-900">Sign in</Link>
+        </div>
         <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight text-slate-950">{title}</h1>
         <p className="mt-4 max-w-3xl text-base leading-7 text-slate-600">{intro}</p>
         <div className="mt-10 space-y-9 text-sm leading-7 text-slate-600">{children}</div>
