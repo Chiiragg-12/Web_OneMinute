@@ -83,7 +83,7 @@ export function AppShell({ groups, user, onSignOut, homeTo, subtitle, children }
   const [collapsed, setCollapsed] = useState(readCollapsed);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const location = useLocation();
-  const all = groups.flatMap((group) => group.items);
+  const all = [...groups.flatMap((group) => group.items), ...(user.accountLinks ?? [])];
   const current = all.find((item) => item.active) ?? all.find((item) => item.to.split('?')[0] === location.pathname);
   const toggle = () => setCollapsed((value) => { saveCollapsed(!value); return !value; });
 
@@ -98,11 +98,13 @@ export function AppShell({ groups, user, onSignOut, homeTo, subtitle, children }
   return (
     <div className="shell-root">
       <aside className={collapsed ? 'shell-sidebar collapsed' : 'shell-sidebar'}>
-        <div className="shell-brand">
-          <Link to={homeTo} aria-label="OneMinute Healthcare home" className="shell-brand-link">{collapsed ? <BrandLogo compact /> : <BrandLogo />}</Link>
-        </div>
         <button type="button" className="shell-collapse" aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} onClick={toggle}>{collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}</button>
-        <NavItems groups={groups} collapsed={collapsed} />
+        <div className="shell-scroll">
+          <div className="shell-brand">
+            <Link to={homeTo} aria-label="OneMinute Healthcare home" className="shell-brand-link">{collapsed ? <BrandLogo compact /> : <BrandLogo />}</Link>
+          </div>
+          <NavItems groups={groups} collapsed={collapsed} />
+        </div>
       </aside>
       {drawerOpen ? (
         <div className="drawer-root lg:hidden">
@@ -116,8 +118,8 @@ export function AppShell({ groups, user, onSignOut, homeTo, subtitle, children }
       <div className="shell-main">
         <header className="shell-header">
           <div className="flex items-center gap-3">
-            <button className="icon-button lg:hidden" type="button" aria-label="Open navigation" onClick={() => setDrawerOpen(true)}><Menu size={19} /></button>
-            <h2 className="shell-title">{current?.label ?? 'OneMinute'}</h2>
+            <button className="icon-button shell-burger" type="button" aria-label="Open navigation" onClick={() => setDrawerOpen(true)}><Menu size={19} /></button>
+            <h2 className="sr-only">{current?.label === 'Account settings' ? 'Profile' : current?.label ?? 'OneMinute'}</h2>
           </div>
           <div className="flex items-center gap-3">{subtitle ? <span className="hidden max-w-[16rem] truncate text-sm text-slate-500 sm:inline">{subtitle}</span> : null}<AccountMenu user={user} onSignOut={onSignOut} /></div>
         </header>

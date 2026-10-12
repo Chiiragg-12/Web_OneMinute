@@ -1,5 +1,5 @@
-import { AlertCircle, CheckCircle2, LoaderCircle, LockKeyhole, SearchX } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { AlertCircle, CheckCircle2, Eye, EyeOff, LoaderCircle, LockKeyhole, SearchX } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { ApiError } from '../api/client';
 
 export function LoadingState({ label = 'Loading' }: { label?: string }) {
@@ -26,7 +26,20 @@ export function SuccessMessage({ children }: { children: ReactNode }) {
 }
 
 export function Field({ label, hint, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; hint?: string }) {
-  return <label className="block"><span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span><input className="field" {...props} />{hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}</label>;
+  const [shown, setShown] = useState(false);
+  const isPassword = props.type === 'password';
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm font-semibold text-slate-700">{label}</span>
+      {isPassword ? (
+        <span className="relative block">
+          <input className="field pr-12" {...props} type={shown ? 'text' : 'password'} />
+          <button type="button" className="absolute right-2 top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-lg text-slate-500 hover:text-teal-700" aria-label={shown ? 'Hide password' : 'Show password'} aria-pressed={shown} onClick={() => setShown((value) => !value)}>{shown ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+        </span>
+      ) : <input className="field" {...props} />}
+      {hint && <span className="mt-1 block text-xs text-slate-500">{hint}</span>}
+    </label>
+  );
 }
 
 export function Button({ children, variant = 'primary', ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'quiet' | 'outline' | 'danger' | 'success' }) {

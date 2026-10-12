@@ -176,7 +176,7 @@ main > :not(.loading-delayed) { animation: page-in .18s ease-out backwards; }
 .shell-title { font-family: 'Space Grotesk', sans-serif; font-size: 1.05rem; font-weight: 600; color: #102a2b; }
 .shell-content { padding: 1.25rem 1rem 2.5rem; }
 .shell-brand { display: flex; align-items: center; justify-content: center; padding: 1.1rem 1rem .6rem; }
-.shell-brand-link { display: block; width: 100%; max-width: 9.5rem; }
+.shell-brand-link { display: block; width: 100%; max-width: 6rem; }
 .shell-brand-link .brand-logo { width: 100%; }
 .shell-nav { display: flex; flex-direction: column; gap: .35rem; padding: .5rem .75rem 1rem; }
 .shell-group { display: flex; flex-direction: column; gap: .15rem; }
@@ -198,14 +198,16 @@ main > :not(.loading-delayed) { animation: page-in .18s ease-out backwards; }
 .shell-popover-link:hover { background: #eef6f3; }
 .shell-popover-foot { display: flex; gap: 1rem; margin-top: .8rem; padding-top: .7rem; border-top: 1px solid #edf3f0; font-size: .75rem; font-weight: 600; color: #087f78; }
 @media (min-width: 1024px) {
-  .shell-sidebar { position: fixed; inset-block: 0; left: 0; z-index: 30; display: block; width: 16.5rem; overflow-y: auto; border-right: 1px solid #dfeae6; background: #fff; transition: width .18s ease; }
+  .shell-sidebar { position: fixed; inset-block: 0; left: 0; z-index: 30; display: block; width: 16.5rem; border-right: 1px solid #dfeae6; background: #fff; transition: width .18s ease; }
+  .shell-scroll { height: 100%; overflow-y: auto; overflow-x: hidden; scrollbar-width: thin; scrollbar-color: #cfdeda transparent; }
+  .shell-burger { display: none; }
   .shell-sidebar.collapsed { width: 4.75rem; }
   .shell-sidebar.collapsed .shell-brand { padding-inline: .5rem; }
   .shell-sidebar.collapsed .shell-brand-link { display: grid; place-items: center; }
   .shell-sidebar.collapsed .shell-link { justify-content: center; }
   .shell-sidebar.collapsed .shell-nav { padding-inline: .5rem; }
-  .shell-collapse { position: absolute; right: .55rem; top: 1.4rem; display: grid; width: 1.6rem; height: 1.6rem; place-items: center; border: 1px solid #dfeae6; border-radius: 999px; background: #fff; color: #4b6664; }
-  .shell-sidebar.collapsed .shell-collapse { position: static; margin: 0 auto .4rem; }
+  .shell-collapse { position: absolute; right: -.85rem; top: 1.15rem; z-index: 2; display: grid; width: 1.7rem; height: 1.7rem; place-items: center; border: 1px solid #cfdeda; border-radius: 999px; background: #fff; color: #4b6664; box-shadow: 0 2px 6px rgba(30,70,65,.12); }
+  .shell-collapse:hover { background: #eef6f3; color: #086f69; }
   .shell-main { margin-left: 16.5rem; transition: margin .18s ease; }
   .shell-sidebar.collapsed ~ .shell-main { margin-left: 4.75rem; }
   .shell-header { padding-inline: 2rem; }

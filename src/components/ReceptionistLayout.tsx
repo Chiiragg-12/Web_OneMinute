@@ -36,7 +36,7 @@ export function ReceptionistLayout() {
     { label: 'Appointments', items: [navigation[1], navigation[2], navigation[3], navigation[8], navigation[6]] },
     { label: 'Clinic', items: [navigation[7], navigation[4], navigation[5]] },
     { label: 'CareGuard', items: [navigation[10], navigation[11]] },
-    { label: 'Account', items: [navigation[12], navigation[9]] },
+    { label: 'Account', items: [navigation[12]] },
   ];
   return (
     <AppShell

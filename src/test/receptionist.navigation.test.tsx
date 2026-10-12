@@ -15,7 +15,6 @@ const routes = [
   ['/receptionist/history?recipient=family', 'History'],
   ['/receptionist/walk-in', 'Walk-In'],
   ['/receptionist/queue', 'Queue'],
-  ['/receptionist/profile', 'Profile'],
 ] as const;
 
 function renderLayout(path: string) { return render(<MemoryRouter initialEntries={[path]}><Routes><Route path="/receptionist" element={<ReceptionistLayout />}><Route path="*" element={<Outlet />} /></Route></Routes></MemoryRouter>); }
