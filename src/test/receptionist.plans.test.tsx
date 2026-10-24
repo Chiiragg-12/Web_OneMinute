@@ -8,12 +8,10 @@ import { ReceptionistPlansPage } from '../pages/ReceptionistPlansPage';
 const mocks = vi.hoisted(() => ({
   useAuth: vi.fn(),
   updateReceptionist: vi.fn(),
-  checkout: vi.fn(),
-  api: { getSubscription: vi.fn(), createSubscriptionOrder: vi.fn(), verifySubscriptionPayment: vi.fn(), getReceptionistProfile: vi.fn() },
+  api: { getSubscription: vi.fn() },
 }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: mocks.useAuth }));
 vi.mock('../api/client', () => ({ api: mocks.api }));
-vi.mock('../utils/razorpay', () => ({ openRazorpayCheckout: mocks.checkout }));
 
 const plans = [
   { id: '3m', label: '3 months', months: 3, amountCents: 199_900 },
@@ -23,9 +21,9 @@ const plans = [
 const expired = { status: 'expired', trialStartedAt: null, trialEndsAt: '2026-09-01T00:00:00.000Z', daysRemaining: 0, subscriptionEndsAt: null };
 const active = { status: 'active', trialStartedAt: null, trialEndsAt: null, daysRemaining: null, subscriptionEndsAt: '2027-01-10T00:00:00.000Z' };
 
-function authWith(trial: unknown) {
+function authWith(trial: unknown, clinicExtra: Record<string, unknown> = {}) {
   mocks.useAuth.mockReturnValue({
-    state: { status: 'authenticated', user: { id: 'u1', role: 'receptionist' }, patient: null, doctor: null, receptionist: { id: 'r1', fullName: 'Reception A', clinic: { id: 'c1', name: 'Demo Clinic', isActive: true, trial } } },
+    state: { status: 'authenticated', user: { id: 'u1', role: 'receptionist' }, patient: null, doctor: null, receptionist: { id: 'r1', fullName: 'Reception A', clinic: { id: 'c1', name: 'Demo Clinic', isActive: true, trial, ...clinicExtra } } },
     logout: vi.fn(),
     updateReceptionist: mocks.updateReceptionist,
   });
@@ -45,29 +43,18 @@ describe('Receptionist subscription plans', () => {
     expect(screen.getAllByRole('button', { name: 'Subscribe' })).toHaveLength(3);
   });
 
-  it('creates an order, opens checkout, verifies the payment and refreshes the session', async () => {
+  it('shows the UPI QR, the exact amount and the clinic ID after choosing a plan, without any online checkout', async () => {
     mocks.api.getSubscription.mockResolvedValue({ plans, currency: 'INR', trial: expired });
-    mocks.api.createSubscriptionOrder.mockResolvedValue({ keyId: 'rzp_test_x', orderId: 'order_1', amount: 349_900, currency: 'INR', plan: plans[1] });
-    mocks.checkout.mockResolvedValue({ razorpay_payment_id: 'pay_1', razorpay_order_id: 'order_1', razorpay_signature: 'sig' });
-    mocks.api.verifySubscriptionPayment.mockResolvedValue({ plans, currency: 'INR', trial: active });
-    mocks.api.getReceptionistProfile.mockResolvedValue({ receptionist: { id: 'r1' } });
+    authWith(expired, { publicClinicId: 'OMC-TEST1234' });
     render(<MemoryRouter><ReceptionistPlansPage /></MemoryRouter>);
-    const user = userEvent.setup();
-    await user.click((await screen.findAllByRole('button', { name: 'Subscribe' }))[1]);
-    await waitFor(() => expect(mocks.api.verifySubscriptionPayment).toHaveBeenCalledWith({ razorpayPaymentId: 'pay_1', razorpayOrderId: 'order_1', razorpaySignature: 'sig' }));
-    expect(mocks.api.createSubscriptionOrder).toHaveBeenCalledWith('6m');
-    await waitFor(() => expect(mocks.updateReceptionist).toHaveBeenCalledWith({ id: 'r1' }));
-    expect(await screen.findByText('Your plan is active')).toBeInTheDocument();
-  });
-
-  it('treats closing the checkout window as a cancellation, not an error', async () => {
-    mocks.api.getSubscription.mockResolvedValue({ plans, currency: 'INR', trial: expired });
-    mocks.api.createSubscriptionOrder.mockResolvedValue({ keyId: 'rzp_test_x', orderId: 'order_1', amount: 199_900, currency: 'INR', plan: plans[0] });
-    mocks.checkout.mockRejectedValue(new Error('Razorpay Checkout was closed'));
-    render(<MemoryRouter><ReceptionistPlansPage /></MemoryRouter>);
-    await userEvent.setup().click((await screen.findAllByRole('button', { name: 'Subscribe' }))[0]);
-    expect(await screen.findByText('Payment cancelled. No charge was made.')).toBeInTheDocument();
-    expect(mocks.api.verifySubscriptionPayment).not.toHaveBeenCalled();
+    expect(screen.queryByRole('img', { name: /UPI QR/ })).not.toBeInTheDocument();
+    await userEvent.setup().click((await screen.findAllByRole('button', { name: 'Subscribe' }))[1]);
+    expect(screen.getByRole('img', { name: /UPI QR/ })).toBeInTheDocument();
+    expect(screen.getByText(/6 months plan/)).toBeInTheDocument();
+    expect(screen.getAllByText('₹3,499').length).toBeGreaterThan(0);
+    expect(screen.getByText('OMC-TEST1234')).toBeInTheDocument();
+    expect(screen.getByText(/starts after OneMinute confirms the payment/)).toBeInTheDocument();
+    expect(screen.queryByText(/Razorpay/)).not.toBeInTheDocument();
   });
 });
 

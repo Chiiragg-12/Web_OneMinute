@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
+import { QrCode } from 'lucide-react';
 import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
+import paymentQr from '../assets/phonepe-qr.jpg';
 import type { SubscriptionOverview, SubscriptionPlan } from '../types/api';
 import { ApiErrorState, Button, LoadingState } from '../components/ui';
-import { openRazorpayCheckout } from '../utils/razorpay';
 
 const rupees = (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`;
 const dateLabel = (value: string | null | undefined) => (value ? new Intl.DateTimeFormat('en-IN', { dateStyle: 'long' }).format(new Date(value)) : '');
@@ -20,12 +21,14 @@ function Heading({ overview }: { overview: SubscriptionOverview }) {
   return <><div className="eyebrow">Subscription</div><h1 className="page-title">Plans</h1><p className="page-lead">Your first month is free, {days} day{days === 1 ? '' : 's'} left. These plans start after the free month ends ({dateLabel(trial.trialEndsAt)}).</p></>;
 }
 
+const PAYEE_NAME = 'CHIRAG MAHOUR';
+
 export function ReceptionistPlansPage() {
-  const { updateReceptionist } = useAuth();
+  const { state } = useAuth();
+  const clinic = state.status === 'authenticated' ? state.receptionist?.clinic : null;
   const [overview, setOverview] = useState<SubscriptionOverview | null>(null);
   const [error, setError] = useState<unknown>(null);
-  const [busyPlan, setBusyPlan] = useState<string | null>(null);
-  const [message, setMessage] = useState('');
+  const [selected, setSelected] = useState<SubscriptionPlan | null>(null);
 
   const load = useCallback(() => {
     setError(null);
@@ -33,46 +36,40 @@ export function ReceptionistPlansPage() {
   }, []);
   useEffect(load, [load]);
 
-  const subscribe = async (plan: SubscriptionPlan) => {
-    setBusyPlan(plan.id); setMessage(''); setError(null);
-    try {
-      const order = await api.createSubscriptionOrder(plan.id);
-      const paid = await openRazorpayCheckout({ keyId: order.keyId, orderId: order.orderId, amount: order.amount, currency: order.currency, name: 'OneMinute Healthcare', description: `${plan.label} subscription` });
-      const next = await api.verifySubscriptionPayment({ razorpayPaymentId: paid.razorpay_payment_id, razorpayOrderId: paid.razorpay_order_id, razorpaySignature: paid.razorpay_signature });
-      setOverview(next);
-      setMessage('Payment received. Your plan is active.');
-      // Refresh the session profile so the rest of the dashboard stops treating the clinic as expired.
-      const profile = await api.getReceptionistProfile();
-      updateReceptionist(profile.receptionist);
-    } catch (nextError) {
-      // Closing the Razorpay window is a normal outcome, not an error screen.
-      if (nextError instanceof Error && nextError.message === 'Razorpay Checkout was closed') setMessage('Payment cancelled. No charge was made.');
-      else setError(nextError instanceof Error ? nextError : new Error('Payment could not be completed'));
-    } finally {
-      setBusyPlan(null);
-    }
-  };
-
   if (!overview && !error) return <LoadingState label="Loading plans" />;
   if (!overview) return <ApiErrorState error={error} onRetry={load} />;
   return (
     <div>
       <Heading overview={overview} />
-      {message && <p className="mt-5 text-sm font-semibold text-emerald-700" role="status">{message}</p>}
-      {error ? <div className="mt-5"><ApiErrorState error={error} /></div> : null}
       <div className="mt-8 grid gap-4 sm:grid-cols-3">
         {overview.plans.map((plan) => (
-          <section className="surface flex flex-col" key={plan.id} aria-label={`${plan.label} plan`}>
+          <section className={`surface flex flex-col ${selected?.id === plan.id ? 'ring-2 ring-teal-600' : ''}`} key={plan.id} aria-label={`${plan.label} plan`}>
             <p className="label">{plan.label}</p>
             <p className="mt-2 font-display text-3xl font-semibold">{rupees(plan.amountCents)}</p>
             <p className="mt-1 text-sm text-slate-500">about {rupees(Math.round(plan.amountCents / plan.months))} per month</p>
-            <Button className="button button-primary mt-6" type="button" disabled={busyPlan !== null} onClick={() => void subscribe(plan)}>
-              {busyPlan === plan.id ? 'Opening payment…' : overview.trial.status === 'active' ? 'Renew' : 'Subscribe'}
+            <Button className="button button-primary mt-6" type="button" onClick={() => setSelected(plan)}>
+              <QrCode size={17} />{overview.trial.status === 'active' ? 'Renew' : 'Subscribe'}
             </Button>
           </section>
         ))}
       </div>
-      <p className="mt-6 text-xs text-slate-500">Payments are processed by Razorpay.</p>
+
+      {selected ? (
+        <section className="surface mt-6 grid gap-6 sm:grid-cols-[auto_1fr]" aria-label="Pay by UPI QR">
+          <img src={paymentQr} alt="PhonePe UPI QR code to pay OneMinute Healthcare" className="mx-auto w-56 rounded-2xl border border-slate-200" />
+          <div>
+            <p className="label">Pay by UPI</p>
+            <h2 className="section-title">{selected.label} plan · {rupees(selected.amountCents)}</h2>
+            <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-slate-600">
+              <li>Scan the QR code with PhonePe or any UPI app. It pays <strong>{PAYEE_NAME}</strong>.</li>
+              <li>Pay exactly <strong>{rupees(selected.amountCents)}</strong>.</li>
+              <li>In the payment note write your Clinic ID{clinic?.publicClinicId ? <>: <strong>{clinic.publicClinicId}</strong></> : null}.</li>
+              <li>Send the payment screenshot, or the UPI transaction ID, to OneMinute support together with your Clinic ID.</li>
+            </ol>
+            <p className="mt-4 text-sm text-slate-500">Your plan starts after OneMinute confirms the payment. This is not instant, and the dashboard will not change until then.</p>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }

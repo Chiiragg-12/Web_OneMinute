@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
-import { openRazorpayCheckout } from "../utils/razorpay";
 import { FinalPrescriptionContent } from "../components/FinalPrescription";
 import { ReceptionistStatusPage } from './ReceptionistStatusPage';
 import { useReceptionistContext } from "../components/ReceptionistLayout";
@@ -300,7 +299,7 @@ export function ReceptionistAppointmentDetailPage() {
   const [busy, setBusy] = useState(false);
   const [prescription, setPrescription] = useState<Prescription | null>(null);
   const [showPrescription, setShowPrescription] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "razorpay" | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | null>(null);
   const [amount, setAmount] = useState("");
   const load = () => {
     if (appointmentId)
@@ -315,27 +314,11 @@ export function ReceptionistAppointmentDetailPage() {
   const requestedReturnTo = new URLSearchParams(location.search).get('returnTo');
   const returnTo = requestedReturnTo?.startsWith('/receptionist/') && !requestedReturnTo.startsWith('//') ? requestedReturnTo : '/receptionist/appointments';
   const receptionCollectionEligible = appointment.consultationMode === "in_person" && appointment.payment?.method === "pay_at_reception" && appointment.payment.status !== "paid";
-  const choosePaymentMethod = (method: "cash" | "razorpay") => {
+  const choosePaymentMethod = (method: "cash") => {
     setPaymentMethod(method);
     setAmount(((appointment.payment?.amountCents ?? 0) / 100).toFixed(2));
   };
   const recordPayment = async () => {
-    if (paymentMethod === "razorpay") {
-      setBusy(true);
-      setActionError(null);
-      try {
-        const order = await api.createRazorpayOrder(appointment.id);
-        if (!order.orderId) throw new Error("Razorpay order is unavailable");
-        const result = await openRazorpayCheckout({ keyId: order.keyId, orderId: order.orderId, amount: order.amount, currency: order.currency, name: "OneMinute Healthcare", description: "In-person appointment payment" });
-        await api.verifyRazorpayPayment(appointment.id, { razorpayPaymentId: result.razorpay_payment_id, razorpayOrderId: result.razorpay_order_id, razorpaySignature: result.razorpay_signature });
-        load();
-      } catch (nextError) {
-        setActionError(nextError);
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
     if (!paymentMethod || !/^\d+(?:\.\d{1,2})?$/.test(amount) || Number(amount) <= 0) { setActionError(new Error("Enter a valid amount greater than zero")); return; }
     setBusy(true);
     setActionError(null);
@@ -434,7 +417,7 @@ export function ReceptionistAppointmentDetailPage() {
       ) : null}
       <section className="surface mt-6">
         <div className="eyebrow">{receptionCollectionEligible ? "Payment collection" : "Payment status"}</div>
-        {appointment.payment?.status === "paid" ? <div className="mt-3"><h2 className="section-title">Payment completed</h2><p className="mt-2 font-semibold">Amount paid: {money(appointment.payment.actualAmountCents ?? appointment.payment.amountCents)} · {readable(appointment.payment.receptionMethod ?? appointment.payment.method)}</p>{appointment.payment.actualAmountCents != null && appointment.payment.actualAmountCents !== appointment.payment.amountCents && <p className="mt-1 text-sm text-slate-600">Original amount due: {money(appointment.payment.amountCents)}</p>}<p className="mt-1 text-sm text-slate-500">Recorded by {appointment.payment.recordedByName ?? "the clinic"} {appointment.payment.paidAt ? `on ${formatTime(appointment.payment.paidAt, "Asia/Kolkata")}` : ""}</p></div> : appointment.payment ? <div className="mt-3"><h2 className="section-title">{receptionCollectionEligible ? "Payment pending" : "Online payment required"}</h2><p className="mt-2 text-sm">Amount due: <strong>{money(appointment.payment.amountCents)}</strong></p>{receptionCollectionEligible ? (!paymentMethod ? <Button className="mt-4" onClick={() => choosePaymentMethod("cash")}>Collect Payment</Button> : <div className="mt-4 space-y-4"><div className="flex gap-2"><Button type="button" variant={paymentMethod === "cash" ? "primary" : "quiet"} onClick={() => choosePaymentMethod("cash")}>Cash</Button><Button type="button" variant={paymentMethod === "razorpay" ? "primary" : "quiet"} onClick={() => choosePaymentMethod("razorpay")}>Razorpay</Button></div>{paymentMethod === "razorpay" && <p className="text-sm text-slate-600">Razorpay Checkout will handle the online payment securely.</p>}{paymentMethod === "cash" && <Field label="Amount to collect (INR)" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} />}<div className="flex gap-2">{paymentMethod === "cash" ? <Button disabled={busy} onClick={() => void recordPayment()}>Save Payment</Button> : <Button disabled={busy} onClick={() => void recordPayment()}>Pay with Razorpay</Button>}<Button disabled={busy} variant="quiet" onClick={() => setPaymentMethod(null)}>Cancel</Button></div></div>) : <p className="mt-3 text-sm text-slate-500">Reception collection is unavailable for this payment mode. Payment must be completed online.</p>}</div> : <p className="mt-2 text-sm text-slate-500">No payment obligation was returned.</p>}
+        {appointment.payment?.status === "paid" ? <div className="mt-3"><h2 className="section-title">Payment completed</h2><p className="mt-2 font-semibold">Amount paid: {money(appointment.payment.actualAmountCents ?? appointment.payment.amountCents)} · {readable(appointment.payment.receptionMethod ?? appointment.payment.method)}</p>{appointment.payment.actualAmountCents != null && appointment.payment.actualAmountCents !== appointment.payment.amountCents && <p className="mt-1 text-sm text-slate-600">Original amount due: {money(appointment.payment.amountCents)}</p>}<p className="mt-1 text-sm text-slate-500">Recorded by {appointment.payment.recordedByName ?? "the clinic"} {appointment.payment.paidAt ? `on ${formatTime(appointment.payment.paidAt, "Asia/Kolkata")}` : ""}</p></div> : appointment.payment ? <div className="mt-3"><h2 className="section-title">{receptionCollectionEligible ? "Payment pending" : "Online payment required"}</h2><p className="mt-2 text-sm">Amount due: <strong>{money(appointment.payment.amountCents)}</strong></p>{receptionCollectionEligible ? (!paymentMethod ? <Button className="mt-4" onClick={() => choosePaymentMethod("cash")}>Collect Payment</Button> : <div className="mt-4 space-y-4"><Field label="Amount to collect (INR)" inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} /><div className="flex gap-2"><Button disabled={busy} onClick={() => void recordPayment()}>Save Payment</Button><Button disabled={busy} variant="quiet" onClick={() => setPaymentMethod(null)}>Cancel</Button></div></div>) : <p className="mt-3 text-sm text-slate-500">Reception collection is unavailable for this payment mode. Payment must be completed online.</p>}</div> : <p className="mt-2 text-sm text-slate-500">No payment obligation was returned.</p>}
       </section>
       <div className="mt-5 flex flex-wrap gap-3">
         {["booked", "queued"].includes(appointment.status) && (

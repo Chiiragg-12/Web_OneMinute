@@ -1,5 +1,4 @@
 import type {
-  Appointment,
   Clinic,
   UserSummary,
   DoctorAppointment,
@@ -14,7 +13,6 @@ import type {
   CareGuardMessage,
   CareGuardStaffThread,
   ClinicMessagingMode,
-  SubscriptionPlan,
   Prescription,
 } from '../types/api';
 
@@ -169,8 +167,6 @@ export const api = {
   logout: (role = roleForPath()) => request<void>(`/api/auth/logout/${role}`, { method: 'POST' }, false),
   getReceptionistProfile: () => request<{ receptionist: ReceptionistProfile }>('/api/receptionists/me'),
   getSubscription: () => request<SubscriptionOverview>('/api/receptionists/me/subscription'),
-  createSubscriptionOrder: (planId: string) => request<{ keyId: string; orderId: string; amount: number; currency: string; plan: SubscriptionPlan }>('/api/receptionists/me/subscription/order', { method: 'POST', body: JSON.stringify({ planId }) }),
-  verifySubscriptionPayment: (input: { razorpayPaymentId: string; razorpayOrderId: string; razorpaySignature: string }) => request<SubscriptionOverview>('/api/receptionists/me/subscription/verify', { method: 'POST', body: JSON.stringify(input) }),
   findReceptionistDoctor: (publicDoctorId: string) => request<{ doctor: import('../types/api').DoctorPublicPreview }>('/api/receptionists/me/doctors/find', { method: 'POST', body: JSON.stringify({ publicDoctorId }) }),
   linkReceptionistDoctor: (publicDoctorId: string) => request<{ membership: unknown }>('/api/receptionists/me/doctors/link', { method: 'POST', body: JSON.stringify({ publicDoctorId }) }),
   listDoctorRequests: () => request<{ requests: { id: string; status: string; doctor: { id: string; publicDoctorId: string | null; fullName: string; specialization: string | null; qualifications: string | null; registrationNumber: string | null } }[] }>('/api/receptionists/me/doctor-requests'),
@@ -208,8 +204,6 @@ export const api = {
   getCareGuardFollowUps: () => request<{ today: string; followUps: CareGuardFollowUpRow[] }>('/api/careguard/receptionist/followups'),
   // CareGuard: doctor side
   getReceptionistPrescription: (appointmentId: string) => request<{ prescription: Prescription }>(`/api/prescriptions/receptionist/appointments/${appointmentId}`),
-  createRazorpayOrder: (appointmentId: string) => request<{ keyId: string; orderId: string | null; amount: number; currency: string; appointmentId: string; payment: Appointment['payment'] }>(`/api/appointments/${appointmentId}/payment/order`, { method: 'POST' }),
-  verifyRazorpayPayment: (appointmentId: string, input: { razorpayPaymentId: string; razorpayOrderId: string; razorpaySignature: string }) => request<{ payment: Appointment['payment'] }>(`/api/appointments/${appointmentId}/payment/verify`, { method: 'POST', body: JSON.stringify(input) }),
   getDoctorQueue: (clinicId: string, doctorId: string, mode: string) => request<{ waiting: DoctorQueueToken[] }>(`/api/appointments/queue/${clinicId}/${doctorId}/waiting?mode=${encodeURIComponent(mode)}`),
   getDoctorNowServing: (clinicId: string, doctorId: string, mode: string) => request<{ nowServing: DoctorNowServing | null }>(`/api/appointments/queue/${clinicId}/${doctorId}/now-serving?mode=${encodeURIComponent(mode)}`),
   startNextConsultation: (clinicId: string, doctorId: string, mode: string) => request<{ token: { id: string; number: number; label: string; status: string } }>(`/api/appointments/queue/${clinicId}/${doctorId}/start-next`, { method: 'POST', body: JSON.stringify({ consultationMode: mode }) }),
