@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+﻿@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
 @import "tailwindcss";
 
 :root { --om-primary: #087F8C; --om-secondary: #18B7B0; --om-accent: #38BDF8; --om-background: #F7FBFC; --om-soft: #EAF8F7; --om-surface: #FFFFFF; --om-text: #102A43; --om-text-secondary: #64748B; --om-success: #16A36A; --om-warning: #F59E0B; --om-danger: #DC3545; font-family: 'DM Sans', sans-serif; color: var(--om-text); background: var(--om-background); font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
@@ -49,6 +49,9 @@ a[href="/doctor"] > span:first-child svg, a[href="/receptionist"] > span:first-c
 .button-warm:hover:not(:disabled) { background: #f3c95f; }
 .field { width: 100%; box-sizing: border-box; border: 1px solid #cbdcd7; border-radius: .7rem; background: #fbfdfc; padding: .75rem .85rem; color: #142f30; outline: none; transition: border .18s ease, box-shadow .18s ease; }
 .field:focus { border-color: var(--om-secondary); box-shadow: 0 0 0 3px rgba(24, 183, 176, .16); }
+.field.field-search { padding-left: 2.75rem !important; }
+.field.field-select { cursor: pointer; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2364748b' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right .75rem center; background-repeat: no-repeat; background-size: 1.25em 1.25em; padding-right: 2.25rem !important; appearance: none; }
+.field.pr-12 { padding-right: 3rem !important; }
 .icon-button { display: inline-grid; width: 2.75rem; min-width: 2.75rem; height: 2.75rem; place-items: center; border: 1px solid #d8e4e0; border-radius: .75rem; background: white; color: #41615e; padding: .65rem; transition: background .18s ease, border-color .18s ease, transform .18s ease; }
 .icon-button:hover { border-color: #9accc1; background: #f0f8f5; transform: translateY(-1px); }
 .icon-button:active { transform: translateY(0); }
