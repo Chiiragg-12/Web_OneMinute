@@ -57,3 +57,7 @@ Local development only; never use these in production. Patients and doctors cann
 ## Notes
 
 Sessions use an httpOnly refresh cookie set by the backend, so the site and API must share a site or have `CORS_ORIGIN` set to the site's exact origin.
+
+## Senior Companion administration
+
+Admins can open `/admin/companions` from the sidebar to manage companion verification, bookings, live journey oversight, safety cases, pricing, refunds and payouts. Customer and companion flows live in the mobile app. See [frontend implementation and validation](docs/senior-companion-frontend.md) for routes, native requirements and release checks.

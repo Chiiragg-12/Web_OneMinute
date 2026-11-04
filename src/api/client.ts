@@ -220,3 +220,19 @@ export const api = {
   createReversal: (input: { sourceEntryId: string; amountCents: number; type: 'refund' | 'adjustment'; reason: string }) => request<{ reversal: { id: string; publicLedgerId: string; grossAmountCents: number } }>('/api/finance/reversals', { method: 'POST', body: JSON.stringify(input) }),
   completeSettlement: (settlementId: string, externalReference: string, note: string) => request<{ settlement: { id: string; settlementId: string; status: string; externalReference: string | null } }>('/api/finance/settlements/' + settlementId + '/complete', { method: 'POST', body: JSON.stringify({ externalReference, note }) }),
 };
+
+/** Private downloads use the same role session and one refresh retry as JSON APIs. */
+export async function downloadPrivateFile(path: string, filename: string, canRetry = true): Promise<void> {
+  const role = roleForPath(); const generation = tokenGenerations.get(role) ?? 0;
+  const token = accessTokens.get(role);
+  const response = await fetch(`${API_BASE_URL}${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {}, credentials: 'include' });
+  if (response.status === 401 && canRetry) {
+    try { if ((tokenGenerations.get(role) ?? 0) === generation) await refreshAccessToken(role); return downloadPrivateFile(path, filename, false); }
+    catch (error) { expireSession(error, role, generation); }
+  }
+  if (!response.ok) { await parseResponse<never>(response); return; }
+  const blob = await response.blob();
+  const extension = blob.type === 'image/png' ? '.png' : blob.type === 'image/jpeg' ? '.jpg' : '.pdf';
+  const url = URL.createObjectURL(blob); const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename.replace(/\.[^.]+$/, '') + extension;
+  document.body.append(anchor); anchor.click(); anchor.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

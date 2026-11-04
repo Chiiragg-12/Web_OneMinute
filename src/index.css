@@ -226,3 +226,37 @@ main > :not(.loading-delayed) { animation: page-in .18s ease-out backwards; }
 @media (max-width: 1023px) { .shell-collapse { display: none; } }
 
 @keyframes tooltip-in { from { opacity: 0; } to { opacity: 1; } }
+
+/* Senior Companion workspace inherits the existing OneMinute surfaces and tokens. */
+.companion-workspace { display: grid; gap: 1.5rem; padding-block: .5rem 2rem; }
+.companion-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 1rem; padding: 1rem 0; }
+.companion-emblem { display: grid; place-items: center; width: 3.7rem; height: 3.7rem; border-radius: 1.2rem; background: var(--om-soft); color: var(--om-primary); }
+.companion-trust { margin-left: auto; display: flex; align-items: center; gap: .4rem; border: 1px solid #cce5df; border-radius: 999px; padding: .55rem .8rem; color: #16645e; font-size: .78rem; background: #eff8f4; }
+.companion-tabs { display: flex; gap: .35rem; overflow-x: auto; border-bottom: 1px solid #dce8e5; padding-bottom: .6rem; }
+.companion-tabs a { flex-shrink: 0; color: #607775; padding: .7rem .9rem; border-radius: .7rem; font-size: .85rem; font-weight: 600; text-decoration: none; }
+.companion-tabs a.active { background: #e3f1ec; color: #087f78; }
+.companion-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+.companion-metric { display: grid; grid-template-columns: 1fr auto; gap: .8rem; padding: 1.3rem; background: #fff; border: 1px solid #dfeae6; border-radius: 1.1rem; color: var(--om-primary); text-decoration: none; }
+.companion-metric strong { grid-column: 1/-1; font-family: 'Space Grotesk', sans-serif; font-size: 2rem; color: var(--om-text); }
+.companion-metric span { color: var(--om-text-secondary); font-size: .8rem; }
+.companion-two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; gap: 1.4rem; }
+.companion-two-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.companion-action { display: grid; gap: 1rem; }
+.companion-action.surface .surface { box-shadow: none; }
+.companion-detail-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid #e7efec; color: inherit; text-decoration: none; overflow-wrap: anywhere; }
+.companion-detail-row dd { max-width: 70%; text-align: right; color: #607775; font-size: .9rem; }
+.companion-table-wrap { overflow-x: auto; border: 1px solid #dfeae6; border-radius: 1rem; background: #fff; }
+.companion-table { width: 100%; border-collapse: collapse; text-align: left; font-size: .85rem; }
+.companion-table th { background: #f0f7f5; color: #607775; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+.companion-table td, .companion-table th { padding: 1rem; border-bottom: 1px solid #e7efec; }
+.companion-table td small { display: block; margin-top: .3rem; color: #64748b; }
+.companion-notice { padding: 1rem 1.2rem; border: 1px solid #e6d7a9; background: #fff9e7; border-radius: 1rem; color: #76500b; font-size: .88rem; }
+.companion-checkbox { display: flex; align-items: flex-start; gap: .65rem; font-size: .85rem; line-height: 1.6; color: #475569; }
+.companion-checkbox input { margin-top: .35rem; accent-color: var(--om-primary); }
+.companion-map { display: block; width: 100%; height: 260px; border: 0; border-radius: .8rem; }
+.companion-timeline { margin: 1rem 0 0 .4rem; padding-left: 1.5rem; border-left: 2px solid #cce5df; list-style: none; }
+.companion-timeline li { position: relative; padding-bottom: 1.3rem; font-size: .85rem; }
+.companion-timeline li::before { content: ''; position: absolute; left: -1.9rem; top: .3rem; width: .7rem; height: .7rem; border-radius: 50%; background: var(--om-primary); border: 2px solid #fff; }
+.companion-timeline time { display: block; color: #64748b; font-size: .75rem; margin-top: .25rem; }
+@media (max-width: 1100px) { .companion-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .companion-two-col { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 540px) { .companion-heading h1 { font-size: 1.6rem; } .companion-trust { margin-left: 0; } .companion-metric { padding: 1rem; } .companion-two-fields { grid-template-columns: minmax(0, 1fr); } }

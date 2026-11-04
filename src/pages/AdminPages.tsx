@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext';
 import {
   AlertCircle,
   Building2,
+  HeartHandshake,
   CreditCard,
   Filter,
   Landmark,
@@ -192,6 +193,7 @@ export function AdminLayout() {
   const groups: ShellGroup[] = [
     { items: [{ to: '/admin', label: 'Overview', Icon: LayoutDashboard, end: true }] },
     { label: 'Money', items: [{ to: '/admin/payments', label: 'Payments', Icon: CreditCard }, { to: '/admin/commissions', label: 'Commissions', Icon: Percent }, { to: '/admin/settlements', label: 'Settlements', Icon: Landmark }, { to: '/admin/reconciliation', label: 'Reconciliation', Icon: Scale }] },
+    { label: 'Care services', items: [{ to: '/admin/companions', label: 'Senior Companion', Icon: HeartHandshake }] },
     { label: 'Platform', items: [{ to: '/admin/clinics', label: 'Clinics', Icon: Building2 }, { to: '/admin/audit-log', label: 'Audit Log', Icon: ScrollText }] },
   ];
   return (
