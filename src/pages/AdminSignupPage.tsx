@@ -7,7 +7,7 @@ import { BrandLogo } from '../components/BrandLogo';
 
 export function AdminSignupPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '' });
+  const [form, setForm] = useState({ fullName: '', email: '', password: '', confirmPassword: '', setupKey: '' });
   const [error, setError] = useState<unknown>(null);
   const [busy, setBusy] = useState(false);
 
@@ -42,7 +42,7 @@ export function AdminSignupPage() {
           </div>
           <div className="eyebrow">OneMinute Admin</div>
           <h1 className="page-title mt-2">Create the first admin</h1>
-          <p className="page-lead">This bootstrap page works only while no admin account exists.</p>
+          <p className="page-lead">This bootstrap page works only while no admin account exists, and needs the setup key held by the platform owner.</p>
 
           {isAlreadyInitialized ? (
             <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
@@ -63,6 +63,14 @@ export function AdminSignupPage() {
           ) : (
             <form className="mt-8 space-y-5" onSubmit={submit}>
               {error ? <ApiErrorState error={error} /> : null}
+              <Field
+                label="Setup key"
+                type="password"
+                value={form.setupKey}
+                onChange={(event) => setForm({ ...form, setupKey: event.target.value })}
+                autoComplete="off"
+                required
+              />
               <Field
                 label="Full Name"
                 value={form.fullName}

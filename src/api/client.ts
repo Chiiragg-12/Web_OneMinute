@@ -158,7 +158,7 @@ export async function streamDoctorQueue(clinicId: string, doctorId: string, mode
 }
 
 export const api = {
-  registerFirstAdmin: (input: { fullName: string; email: string; password: string; confirmPassword: string }) => request<{ user: UserSummary }>('/api/auth/register/admin/first', { method: 'POST', body: JSON.stringify(input) }),
+  registerFirstAdmin: ({ setupKey, ...input }: { fullName: string; email: string; password: string; confirmPassword: string; setupKey: string }) => request<{ user: UserSummary }>('/api/auth/register/admin/first', { method: 'POST', headers: { 'X-Staff-Provisioning-Secret': setupKey }, body: JSON.stringify(input) }),
   registerReceptionist: (input: Record<string, unknown>) => request<{ accessToken: string; user: UserSummary }>('/api/auth/register/receptionist/public', { method: 'POST', body: JSON.stringify(input) }),
   googleOnboardReceptionist: (input: Record<string, unknown>) => request<{ accessToken: string; user: UserSummary }>('/api/auth/google/receptionist/onboard', { method: 'POST', body: JSON.stringify(input) }),
   googleLogin: (role: UserSummary['role'], credential: string) => request<{ accessToken: string; user: UserSummary }>(`/api/auth/google/${role}`, { method: 'POST', body: JSON.stringify({ credential }) }),
