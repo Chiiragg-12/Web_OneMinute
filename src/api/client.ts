@@ -157,7 +157,12 @@ export async function streamDoctorQueue(clinicId: string, doctorId: string, mode
   while (true) { const result = await reader.read(); if (result.done) return; buffer += decoder.decode(result.value, { stream: true }); const frames = buffer.split('\n\n'); buffer = frames.pop() ?? ''; if (frames.some((frame) => frame.split('\n').some((line) => line.startsWith('data: ')))) onEvent(); }
 }
 
+export interface AdminDoctor { id: string; publicDoctorId: string | null; fullName: string; specialization: string | null; qualifications: string | null; registrationNumber: string | null; registrationCouncil: string | null; email: string | null; phone: string | null; active: boolean; verified: boolean; verifiedAt: string | null; createdAt: string; clinics: string[] }
+
 export const api = {
+  getAdminDoctors: (status: 'pending' | 'verified' | 'all') => request<{ doctors: AdminDoctor[] }>(`/api/admin/doctors?status=${status}`),
+  verifyDoctor: (doctorId: string, note?: string) => request<{ doctor: AdminDoctor }>(`/api/admin/doctors/${doctorId}/verify`, { method: 'POST', body: JSON.stringify(note ? { note } : {}) }),
+  revokeDoctor: (doctorId: string, note?: string) => request<{ doctor: AdminDoctor }>(`/api/admin/doctors/${doctorId}/revoke`, { method: 'POST', body: JSON.stringify(note ? { note } : {}) }),
   registerFirstAdmin: ({ setupKey, ...input }: { fullName: string; email: string; password: string; confirmPassword: string; setupKey: string }) => request<{ user: UserSummary }>('/api/auth/register/admin/first', { method: 'POST', headers: { 'X-Staff-Provisioning-Secret': setupKey }, body: JSON.stringify(input) }),
   registerReceptionist: (input: Record<string, unknown>) => request<{ accessToken: string; user: UserSummary }>('/api/auth/register/receptionist/public', { method: 'POST', body: JSON.stringify(input) }),
   googleOnboardReceptionist: (input: Record<string, unknown>) => request<{ accessToken: string; user: UserSummary }>('/api/auth/google/receptionist/onboard', { method: 'POST', body: JSON.stringify(input) }),

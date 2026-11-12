@@ -8,6 +8,7 @@ import { ReceptionistAddDoctorPage } from './pages/ReceptionistAddDoctorPage';
 import { ReceptionistFinancePage } from './pages/ReceptionistFinancePage';
 import { ReceptionistPlansPage } from './pages/ReceptionistPlansPage';
 import { ReceptionistHistoryPage } from './pages/HistoryPages';
+import { AdminDoctorsPage } from './pages/AdminDoctorsPage';
 import { AdminAuditLogPage, AdminClinicDetailPage, AdminClinicsPage, AdminCommissionsPage, AdminLayout, AdminOverviewPage, AdminPaymentsPage, AdminReconciliationPage, AdminSettlementsPage } from './pages/AdminPages';
 import { AdminSignupPage } from './pages/AdminSignupPage';
 import { PrivacyPolicyPage, TermsOfServicePage } from './pages/LegalPages';
@@ -51,6 +52,7 @@ function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminOverviewPage />} />
           <Route path="payments" element={<AdminPaymentsPage />} />
+          <Route path="doctors" element={<AdminDoctorsPage />} />
           <Route path="clinics" element={<AdminClinicsPage />} />
           <Route path="clinics/:clinicId" element={<AdminClinicDetailPage />} />
           <Route path="commissions" element={<AdminCommissionsPage />} />

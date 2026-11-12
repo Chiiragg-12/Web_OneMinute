@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { useAuth } from '../auth/AuthContext';
 import {
   AlertCircle,
+  BadgeCheck,
   Building2,
   HeartHandshake,
   CreditCard,
@@ -194,7 +195,7 @@ export function AdminLayout() {
     { items: [{ to: '/admin', label: 'Overview', Icon: LayoutDashboard, end: true }] },
     { label: 'Money', items: [{ to: '/admin/payments', label: 'Payments', Icon: CreditCard }, { to: '/admin/commissions', label: 'Commissions', Icon: Percent }, { to: '/admin/settlements', label: 'Settlements', Icon: Landmark }, { to: '/admin/reconciliation', label: 'Reconciliation', Icon: Scale }] },
     { label: 'Care services', items: [{ to: '/admin/companions', label: 'Senior Companion', Icon: HeartHandshake }] },
-    { label: 'Platform', items: [{ to: '/admin/clinics', label: 'Clinics', Icon: Building2 }, { to: '/admin/audit-log', label: 'Audit Log', Icon: ScrollText }] },
+    { label: 'Platform', items: [{ to: '/admin/clinics', label: 'Clinics', Icon: Building2 }, { to: '/admin/doctors', label: 'Doctors', Icon: BadgeCheck }, { to: '/admin/audit-log', label: 'Audit Log', Icon: ScrollText }] },
   ];
   return (
     <AppShell
