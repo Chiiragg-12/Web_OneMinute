@@ -12,6 +12,8 @@ import { AdminAuditLogPage, AdminClinicDetailPage, AdminClinicsPage, AdminCommis
 import { AdminSignupPage } from './pages/AdminSignupPage';
 import { PrivacyPolicyPage, TermsOfServicePage } from './pages/LegalPages';
 import { ReceptionistFollowUpsPage, ReceptionistMessagesPage } from './pages/CareGuardClinicPages';
+import { CompanionLayout } from './features/companions/shared';
+import { CompanionOverview, CompanionPeople, CompanionPerson, CompanionBookings, CompanionBookingDetail, CompanionSafety, CompanionPricing, CompanionFinance } from './features/companions/pages';
 import { GetTheAppPage } from './pages/LandingPages';
 
 function ReceptionistGuard() {
@@ -55,6 +57,16 @@ function App() {
           <Route path="settlements" element={<AdminSettlementsPage />} />
           <Route path="reconciliation" element={<AdminReconciliationPage />} />
           <Route path="audit-log" element={<AdminAuditLogPage />} />
+          <Route path="companions" element={<CompanionLayout />}>
+            <Route index element={<CompanionOverview />} />
+            <Route path="people" element={<CompanionPeople />} />
+            <Route path="people/:id" element={<CompanionPerson />} />
+            <Route path="bookings" element={<CompanionBookings />} />
+            <Route path="bookings/:id" element={<CompanionBookingDetail />} />
+            <Route path="safety" element={<CompanionSafety />} />
+            <Route path="pricing" element={<CompanionPricing />} />
+            <Route path="finance" element={<CompanionFinance />} />
+          </Route>
         </Route>
       </Route>
       <Route element={<ReceptionistGuard />}>
