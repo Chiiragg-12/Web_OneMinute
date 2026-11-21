@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { AlertTriangle, ArrowRight, CalendarClock, HeartHandshake, ShieldCheck, Users } from 'lucide-react';
-import { Button, EmptyState } from '../../components/ui';
+import { AlertTriangle, ArrowRight, CalendarClock, HeartHandshake, Pencil, Plus, ShieldCheck, Trash2, Users, X } from 'lucide-react';
+import { ApiErrorState, Button, EmptyState } from '../../components/ui';
 import { downloadPrivateFile } from '../../api/client';
 import { companionAdmin as api } from './api';
 import { ActionForm, field, Notes, PageTitle, Paging, Resource, SelectField, Status, TextField, useCompanionData } from './shared';
@@ -86,12 +86,148 @@ function LocationFinder() {
   };
   return <div className="space-y-2"><div className="flex flex-wrap gap-2"><Button type="button" variant="outline" disabled={busy} onClick={(event) => void find(event.currentTarget)}>{busy ? 'Looking up…' : 'Find location from the name'}</Button><Button type="button" variant="outline" onClick={(event) => here(event.currentTarget)}>Use my current location</Button></div>{message ? <p className="text-sm text-slate-600" role="status">{message}</p> : null}</div>;
 }
+function Dialog({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-label={title} className="surface my-8 w-full max-w-2xl">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <h3 className="font-display text-xl font-semibold">{title}</h3>
+          <button type="button" aria-label="Close" className="rounded-lg p-1 text-slate-500 hover:bg-slate-100" onClick={onClose}><X size={20} /></button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+const defaultTransportPolicy = 'Family arranges and pays for transport separately.';
+
+// One form for adding an area and for editing one. Saving always publishes a new version of the area; the
+// backend switches the previous version of the same area off, and existing bookings keep their accepted terms.
+function PricingForm({ initial, onDone, onCancel }: { initial: Pricing | null; onDone: () => void; onCancel: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>();
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true); setError(undefined);
+    const form = new FormData(event.currentTarget);
+    const number = (key: string) => Number(field(form, key));
+    try {
+      await api.post('/admin/pricing', { serviceArea: field(form, 'serviceArea'), centerLatitude: number('lat'), centerLongitude: number('lng'), radiusKm: number('radius'), baseAmount: Math.round(number('base') * 100), hourlyAmount: Math.round(number('hourly') * 100), minimumHours: number('min'), maximumHours: number('max'), travelBufferMinutes: number('buffer'), commissionBps: Math.round(number('commission') * 100), freeCancellationHours: number('freeHours'), lateCancellationBps: Math.round(number('cancelFee') * 100), transportPolicy: field(form, 'transport') });
+      onDone();
+    } catch (cause) { setError(cause); }
+    finally { setBusy(false); }
+  };
+  return (
+    <form className="space-y-4" onSubmit={(event) => void submit(event)}>
+      {initial ? <p className="text-sm text-slate-500">Saving publishes a new version for this area. The current version is switched off, and bookings already made keep the terms they were made under.</p> : null}
+      <TextField label="Service area name" name="serviceArea" defaultValue={initial?.serviceArea ?? ''} readOnly={Boolean(initial)} />
+      <LocationFinder />
+      <div className="companion-two-fields">
+        <TextField label="Center latitude" name="lat" type="number" step="any" min="-90" max="90" defaultValue={initial ? String(initial.centerLatitude) : ''} />
+        <TextField label="Center longitude" name="lng" type="number" step="any" min="-180" max="180" defaultValue={initial ? String(initial.centerLongitude) : ''} />
+      </div>
+      <TextField label="Coverage radius (km)" name="radius" type="number" min="1" max="500" defaultValue={String(initial?.radiusKm ?? 25)} />
+      <div className="companion-two-fields">
+        <TextField label="Base price (₹)" name="base" type="number" min="0" step="0.01" defaultValue={String((initial?.baseAmount ?? 10000) / 100)} />
+        <TextField label="Hourly price (₹)" name="hourly" type="number" min="0.01" step="0.01" defaultValue={String((initial?.hourlyAmount ?? 20000) / 100)} />
+        <TextField label="Minimum hours" name="min" type="number" min="1" max="24" defaultValue={String(initial?.minimumHours ?? 1)} />
+        <TextField label="Maximum hours" name="max" type="number" min="1" max="24" defaultValue={String(initial?.maximumHours ?? 8)} />
+      </div>
+      <TextField label="Travel buffer (minutes)" name="buffer" type="number" min="0" max="180" defaultValue={String(initial?.travelBufferMinutes ?? 60)} />
+      <TextField label="Platform commission (%)" name="commission" type="number" min="0" max="100" step="0.01" defaultValue={String((initial?.commissionBps ?? 1500) / 100)} />
+      <TextField label="Free cancellation before pickup (hours)" name="freeHours" type="number" min="0" max="168" defaultValue={String(initial?.freeCancellationHours ?? 24)} />
+      <TextField label="Late cancellation fee (%)" name="cancelFee" type="number" min="0" max="100" step="0.01" defaultValue={String((initial?.lateCancellationBps ?? 2500) / 100)} />
+      <label className="block text-sm font-semibold text-slate-700">Transport responsibility and costs<textarea className="field mt-2" name="transport" required maxLength={2000} rows={3} defaultValue={initial?.transportPolicy ?? defaultTransportPolicy} /></label>
+      {error ? <ApiErrorState error={error} /> : null}
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" disabled={busy}>{busy ? 'Saving…' : initial ? 'Save changes' : 'Add service area'}</Button>
+      </div>
+    </form>
+  );
+}
+
+type PricingDialog = { mode: 'add' } | { mode: 'edit'; item: Pricing } | { mode: 'delete'; item: Pricing };
+
 export function CompanionPricing() {
   const r = useCompanionData<Page<Pricing>>('/admin/pricing');
-  return <><PageTitle title="Pricing & coverage" description="Publish service areas and transparent pricing. Existing bookings keep their accepted terms." refresh={r.refresh} /><div className="companion-two-col"><Resource resource={r}><section className="space-y-4">{r.data?.items.map(p => <div className="surface" key={p.id}><div className="flex items-center justify-between gap-3"><h3 className="font-display text-xl font-semibold">{p.serviceArea}</h3><Status value={p.active ? 'approved' : 'disabled'} /></div><p className="mt-3">{money(p.baseAmount)} base + {money(p.hourlyAmount)} / hour</p><p className="mt-2 text-sm text-slate-500">{p.minimumHours}–{p.maximumHours} hours · {p.radiusKm} km radius · {p.commissionBps / 100}% commission</p><p className="mt-3 text-sm">{p.transportPolicy}</p>{p.active ? <ActionForm title="Close this area to new quotes" submitLabel="Disable coverage" danger onSuccess={r.refresh} onSubmit={() => api.remove(`/admin/pricing/${p.id}`)} /> : null}</div>)}{!r.data?.items.length ? <EmptyState title="No service areas configured" message="Add the first coverage area and its pricing." /> : null}</section></Resource><ActionForm title="Publish an area price" submitLabel="Publish pricing version" onSuccess={r.refresh} onSubmit={f => {
-    const number = (key: string) => Number(field(f, key));
-    return api.post('/admin/pricing', { serviceArea: field(f, 'serviceArea'), centerLatitude: number('lat'), centerLongitude: number('lng'), radiusKm: number('radius'), baseAmount: Math.round(number('base') * 100), hourlyAmount: Math.round(number('hourly') * 100), minimumHours: number('min'), maximumHours: number('max'), travelBufferMinutes: number('buffer'), commissionBps: Math.round(number('commission') * 100), freeCancellationHours: number('freeHours'), lateCancellationBps: Math.round(number('cancelFee') * 100), transportPolicy: field(f, 'transport') });
-  }}><TextField label="Service area name" name="serviceArea" /><LocationFinder /><div className="companion-two-fields"><TextField label="Center latitude" name="lat" type="number" step="any" min="-90" max="90" /><TextField label="Center longitude" name="lng" type="number" step="any" min="-180" max="180" /></div><TextField label="Coverage radius (km)" name="radius" defaultValue="25" type="number" min="1" max="500" /><div className="companion-two-fields"><TextField label="Base price (₹)" name="base" defaultValue="100" type="number" min="0" step="0.01" /><TextField label="Hourly price (₹)" name="hourly" defaultValue="200" type="number" min="0.01" step="0.01" /><TextField label="Minimum hours" name="min" defaultValue="1" type="number" min="1" max="24" /><TextField label="Maximum hours" name="max" defaultValue="8" type="number" min="1" max="24" /></div><TextField label="Travel buffer (minutes)" name="buffer" defaultValue="60" type="number" min="0" max="180" /><TextField label="Platform commission (%)" name="commission" defaultValue="15" type="number" min="0" max="100" step="0.01" /><TextField label="Free cancellation before pickup (hours)" name="freeHours" defaultValue="24" type="number" min="0" max="168" /><TextField label="Late cancellation fee (%)" name="cancelFee" defaultValue="25" type="number" min="0" max="100" step="0.01" /><Notes label="Transport responsibility and costs" name="transport" /></ActionForm></div></>;
+  const [dialog, setDialog] = useState<PricingDialog | null>(null);
+  const [showDisabled, setShowDisabled] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<unknown>();
+  const items = [...(r.data?.items ?? [])].sort((a, b) => Number(b.active) - Number(a.active) || a.serviceArea.localeCompare(b.serviceArea));
+  const shown = showDisabled ? items : items.filter((item) => item.active);
+  const close = () => { setDialog(null); setDeleteError(undefined); };
+  const saved = () => { close(); r.refresh(); };
+  const remove = async (item: Pricing) => {
+    setDeleting(true); setDeleteError(undefined);
+    try { await api.remove(`/admin/pricing/${item.id}`); saved(); }
+    catch (cause) { setDeleteError(cause); }
+    finally { setDeleting(false); }
+  };
+  return (
+    <>
+      <PageTitle title="Pricing & coverage" description="Service areas and their prices. Patients can only book inside an active area. Existing bookings keep their accepted terms." refresh={r.refresh} />
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <label className="flex items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={showDisabled} onChange={(event) => setShowDisabled(event.target.checked)} />Show disabled and older versions</label>
+        <Button onClick={() => setDialog({ mode: 'add' })}><Plus size={16} />Add service area</Button>
+      </div>
+      <Resource resource={r}>
+        {!shown.length ? <div className="mt-4"><EmptyState title="No service areas configured" message="Add the first coverage area and its pricing." /></div> : (
+          <div className="surface mt-4 overflow-x-auto p-0">
+            <table className="w-full min-w-[960px] text-left text-sm">
+              <thead className="bg-slate-50 text-slate-600">
+                <tr>{['Area', 'Center', 'Radius', 'Base', 'Hourly', 'Hours', 'Buffer', 'Commission', 'Cancellation', 'Status', 'Actions'].map((heading) => <th key={heading} className="px-3 py-3 font-semibold">{heading}</th>)}</tr>
+              </thead>
+              <tbody>
+                {shown.map((item) => (
+                  <tr key={item.id} className="border-t border-slate-100 align-top">
+                    <td className="px-3 py-3"><div className="font-semibold">{item.serviceArea}</div><div className="mt-1 max-w-[220px] text-xs text-slate-500">{item.transportPolicy}</div></td>
+                    <td className="px-3 py-3 whitespace-nowrap">{Number(item.centerLatitude).toFixed(4)}, {Number(item.centerLongitude).toFixed(4)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap">{item.radiusKm} km</td>
+                    <td className="px-3 py-3 whitespace-nowrap">{money(item.baseAmount)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap">{money(item.hourlyAmount)}</td>
+                    <td className="px-3 py-3 whitespace-nowrap">{item.minimumHours}–{item.maximumHours} h</td>
+                    <td className="px-3 py-3 whitespace-nowrap">{item.travelBufferMinutes} min</td>
+                    <td className="px-3 py-3 whitespace-nowrap">{item.commissionBps / 100}%</td>
+                    <td className="px-3 py-3 whitespace-nowrap">{item.freeCancellationHours} h free, then {item.lateCancellationBps / 100}%</td>
+                    <td className="px-3 py-3"><Status value={item.active ? 'approved' : 'disabled'} /></td>
+                    <td className="px-3 py-3">
+                      {item.active ? (
+                        <div className="flex gap-2">
+                          <Button variant="outline" aria-label={`Edit ${item.serviceArea}`} onClick={() => setDialog({ mode: 'edit', item })}><Pencil size={14} />Edit</Button>
+                          <Button variant="danger" aria-label={`Delete ${item.serviceArea}`} onClick={() => setDialog({ mode: 'delete', item })}><Trash2 size={14} />Delete</Button>
+                        </div>
+                      ) : <span className="text-slate-400">Closed</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Resource>
+      {dialog?.mode === 'add' ? <Dialog title="Add a service area" onClose={close}><PricingForm initial={null} onDone={saved} onCancel={close} /></Dialog> : null}
+      {dialog?.mode === 'edit' ? <Dialog title={`Edit ${dialog.item.serviceArea}`} onClose={close}><PricingForm key={dialog.item.id} initial={dialog.item} onDone={saved} onCancel={close} /></Dialog> : null}
+      {dialog?.mode === 'delete' ? (
+        <Dialog title="Delete this service area?" onClose={close}>
+          <p className="text-sm text-slate-600">New quotes for <strong>{dialog.item.serviceArea}</strong> will stop right away. Bookings already made keep their price and terms. You can add the area again later.</p>
+          {deleteError ? <div className="mt-3"><ApiErrorState error={deleteError} /></div> : null}
+          <div className="mt-5 flex flex-wrap justify-end gap-2">
+            <Button variant="outline" onClick={close}>Keep it</Button>
+            <Button variant="danger" disabled={deleting} onClick={() => void remove(dialog.item)}>{deleting ? 'Deleting…' : 'Delete area'}</Button>
+          </div>
+        </Dialog>
+      ) : null}
+    </>
+  );
 }
 export function CompanionFinance() {
   const [tab, setTab] = useState<'payments' | 'refunds' | 'payouts'>('payments'); const [page, setPage] = useState(1);
